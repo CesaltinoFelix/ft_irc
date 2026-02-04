@@ -2,7 +2,6 @@
 #include <iostream>
 #include <stdlib.h>
 
-// Função para validar argumentos
 static void validateArgs(int argc, char **argv)
 {
 	if (argc != 3)
@@ -12,7 +11,6 @@ static void validateArgs(int argc, char **argv)
 		exit(1);
 	}
 
-	// Verifica se a porta é um número válido
 	for (int i = 0; argv[1][i]; i++)
 	{
 		if (!isdigit(argv[1][i]))
@@ -37,7 +35,6 @@ int main(int argc, char **argv)
 	int port = atoi(argv[1]);
 	std::string password = argv[2];
 
-	// Cria e inicializa o servidor
 	Server server(port, password);
 	server.init();
 	server.run();
