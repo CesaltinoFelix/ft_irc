@@ -48,8 +48,8 @@ nc localhost 6667
 
 ## Próximos passos para expandir
 
-- [ ] Armazenar múltiplas conexões (usar vetor ou lista)
-- [ ] Usar `select()` ou `poll()` para gerenciar múltiplos clientes
+- [x] Armazenar múltiplas conexões (usar vetor ou lista)
+- [x] Usar `select()` ou `poll()` para gerenciar múltiplos clientes
 - [ ] Implementar protocolo IRC (comandos, canais, usuários)
 - [ ] Criar classes Client e Channel
 - [ ] Implementar autenticação com senha
