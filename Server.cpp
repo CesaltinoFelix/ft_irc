@@ -36,7 +36,7 @@ void Server::init()
 		exit(1);
 	}
 
-	// Configurar socket como non-blocking
+	// Configurar socket como non-blocking. Descobri que isso é importante para o modelo de multiplexação com poll()
 	if (fcntl(_serverSocket, F_SETFL, O_NONBLOCK) < 0)
 	{
 		std::cerr << "Error setting socket to non-blocking" << std::endl;
@@ -44,8 +44,8 @@ void Server::init()
 	}
 
 	_serverAddr.sin_family = AF_INET;
-	_serverAddr.sin_addr.s_addr = INADDR_ANY;	// Escuta em todas as interfaces
-	_serverAddr.sin_port = htons(_port);		// Converte porta para network byte order
+	_serverAddr.sin_addr.s_addr = INADDR_ANY;
+	_serverAddr.sin_port = htons(_port);	
 
 	if (bind(_serverSocket, (struct sockaddr *)&_serverAddr, sizeof(_serverAddr)) < 0)
 	{
@@ -53,17 +53,15 @@ void Server::init()
 		exit(1);
 	}
 
-	// Coloca o socket em modo de escuta (max 5 conexões na fila)
 	if (listen(_serverSocket, 5) < 0)
 	{
 		std::cerr << "Error listening on socket" << std::endl;
 		exit(1);
 	}
 
-	// Adicionar o socket do servidor ao vetor de poll
 	struct pollfd serverPollFd;
 	serverPollFd.fd = _serverSocket;
-	serverPollFd.events = POLLIN;	// Interesse em leitura (novas conexões)
+	serverPollFd.events = POLLIN;
 	serverPollFd.revents = 0;
 	_pollFds.push_back(serverPollFd);
 
@@ -90,7 +88,6 @@ void Server::acceptConnection()
 		return;
 	}
 
-	// Adicionar ao vetor de poll
 	struct pollfd clientPollFd;
 	clientPollFd.fd = clientSocket;
 	clientPollFd.events = POLLIN;
@@ -116,7 +113,6 @@ void Server::handleClientData(int fd)
 
 	if (bytesRead <= 0)
 	{
-		// Cliente desconectou ou erro
 		if (bytesRead == 0)
 			std::cout << "Client disconnected (fd: " << fd << ")" << std::endl;
 		else
@@ -125,7 +121,6 @@ void Server::handleClientData(int fd)
 		return;
 	}
 
-	// Adicionar dados ao buffer do cliente
 	Client *client = _clients[fd];
 	client->appendToBuffer(std::string(buffer, bytesRead));
 
@@ -135,22 +130,23 @@ void Server::handleClientData(int fd)
 	while ((pos = clientBuffer.find('\n')) != std::string::npos)
 	{
 		std::string command = clientBuffer.substr(0, pos);
-		// Remover \r se existir
+
 		if (!command.empty() && command[command.length() - 1] == '\r')
 			command.erase(command.length() - 1);
 
 		clientBuffer.erase(0, pos + 1);
 
-		// Por agora, apenas mostrar o comando recebido
-		std::cout << "Received from fd " << fd << ": " << command << std::endl;
-
-		// TODO: Processar comandos IRC aqui (PASS, NICK, USER, etc.)
+		if (!command.empty())
+		{
+			std::cout << "Received from fd " << fd << ": " << command << std::endl;
+			processCommand(fd, command);
+		}
 	}
 }
 
 void Server::removeClient(int fd)
 {
-	// Remover do vetor de poll
+
 	for (std::vector<struct pollfd>::iterator it = _pollFds.begin(); it != _pollFds.end(); ++it)
 	{
 		if (it->fd == fd)
@@ -160,7 +156,6 @@ void Server::removeClient(int fd)
 		}
 	}
 
-	// Remover do map e deletar o objeto
 	std::map<int, Client*>::iterator it = _clients.find(fd);
 	if (it != _clients.end())
 	{
@@ -185,7 +180,7 @@ void Server::run()
 
 		if (pollCount < 0)
 		{
-			std::cerr << "Error in poll()" << std::endl;
+			std::cer << "Error in poll()" << std::endl;
 			break;
 		}
 
@@ -196,12 +191,10 @@ void Server::run()
 			{
 				if (_pollFds[i].fd == _serverSocket)
 				{
-					// Nova conexão no socket do servidor
 					acceptConnection();
 				}
 				else
 				{
-					// Dados de um cliente existente
 					handleClientData(_pollFds[i].fd);
 				}
 			}
@@ -231,4 +224,74 @@ int Server::getServerSocket() const
 std::string Server::getPassword() const
 {
 	return (_password);
+}
+
+
+void Server::sendToClient(int fd, const std::string &message)
+{
+	std::string fullMessage = message + "\r\n";
+	send(fd, fullMessage.c_str(), fullMessage.length(), 0);
+}
+
+void Server::processCommand(int fd, const std::string &command)
+{
+	std::string cmd;
+	std::string args;
+
+	size_t spacePos = command.find(' ');
+	if (spacePos != std::string::npos)
+	{
+		cmd = command.substr(0, spacePos);
+		args = command.substr(spacePos + 1);
+	}
+	else
+	{
+		cmd = command;
+		args = "";
+	}
+
+	for (size_t i = 0; i < cmd.length(); i++)
+		cmd[i] = toupper(cmd[i]);
+
+	if (cmd == "PASS")
+		cmdPass(fd, args);
+	else if (!_clients[fd]->isAuthenticated())
+	{
+		sendToClient(fd, "ERROR :You must authenticate first with PASS");
+	}
+	else
+	{
+		sendToClient(fd, "421 " + cmd + " :Unknown command");
+	}
+}
+
+//Cefelix > pessoal, aqui comecei fazendo o parser dos Comandos IRC. Por enquanto só implementei o PASS, mas a ideia é ir implementando os outros aos poucos. O modelo é bem simples: separar o comando dos argumentos, converter o comando para maiúsculas e depois usar if/else para chamar a função correspondente. Sei que isso não é super escalável, mas para um projeto pequeno como esse acho que é suficiente. Se fosse algo maior, aí sim eu consideraria uma abordagem mais sofisticada, tipo map de string -> função ou algo do tipo. O que vocês acham?
+
+void Server::cmdPass(int fd, const std::string &args)
+{
+	Client *client = _clients[fd];
+
+	if (client->isAuthenticated())
+	{
+		sendToClient(fd, "462 :You may not reregister");
+		return;
+	}
+
+	if (args.empty())
+	{
+		sendToClient(fd, "461 PASS :Not enough parameters");
+		return;
+	}
+
+	if (args == _password)
+	{
+		client->setAuthenticated(true);
+		std::cout << "Client fd " << fd << " authenticated successfully" << std::endl;
+		// Não enviamos mensagem de sucesso aqui - o cliente ainda precisa de NICK e USER
+	}
+	else
+	{
+		sendToClient(fd, "464 :Password incorrect");
+		std::cout << "Client fd " << fd << " failed authentication (wrong password)" << std::endl;
+	}
 }

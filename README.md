@@ -52,4 +52,4 @@ nc localhost 6667
 - [x] Usar `select()` ou `poll()` para gerenciar múltiplos clientes
 - [ ] Implementar protocolo IRC (comandos, canais, usuários)
 - [ ] Criar classes Client e Channel
-- [ ] Implementar autenticação com senha
+- [x] Implementar autenticação com senha (comando PASS)

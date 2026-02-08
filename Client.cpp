@@ -9,7 +9,6 @@ Client::~Client()
 {
 }
 
-// Getters
 int Client::getFd() const
 {
 	return _fd;
@@ -40,7 +39,6 @@ bool Client::isAuthenticated() const
 	return _authenticated;
 }
 
-// Setters
 void Client::setNickname(const std::string &nickname)
 {
 	_nickname = nickname;
@@ -56,7 +54,7 @@ void Client::setAuthenticated(bool auth)
 	_authenticated = auth;
 }
 
-// Buffer management
+// Buffer management... Acha que isso pode ser melhorado depois, mas por enquanto vamos manter simples
 void Client::appendToBuffer(const std::string &data)
 {
 	_buffer += data;

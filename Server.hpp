@@ -30,15 +30,18 @@ public:
 	Server(int port, const std::string &password);
 	~Server();
 
-	// Métodos principais
-	void	init();					// Inicializa o socket do servidor
-	void	run();					// Loop principal do servidor
-	void	acceptConnection();		// Aceita nova conexão
-	void	handleClientData(int fd);	// Lê e processa dados de um cliente
-	void	removeClient(int fd);		// Remove um cliente desconectado
-	void	closeServer();			// Fecha o servidor
+	void	init();					
+	void	run();					
+	void	acceptConnection();		
+	void	handleClientData(int fd);	
+	void	removeClient(int fd);		
+	void	closeServer();			
 
-	// Getters
+	void	processCommand(int fd, const std::string &command);
+	void	sendToClient(int fd, const std::string &message);
+
+	void	cmdPass(int fd, const std::string &args);
+
 	int			getPort() const;
 	int			getServerSocket() const;
 	std::string	getPassword() const;

@@ -8,10 +8,10 @@
 class Client
 {
 private:
-	int					_fd;			// File descriptor do socket
-	std::string			_ipAddr;		// Endereço IP do cliente
-	std::string			_nickname;		// Nickname do cliente
-	std::string			_username;		// Username do cliente
+	int					_fd;	
+	std::string			_ipAddr;
+	std::string			_nickname;
+	std::string			_username;
 	std::string			_buffer;		// Buffer para mensagens incompletas
 	bool				_authenticated;	// Se passou a senha correta
 
@@ -19,7 +19,6 @@ public:
 	Client(int fd, const std::string &ipAddr);
 	~Client();
 
-	// Getters
 	int					getFd() const;
 	std::string			getIpAddr() const;
 	std::string			getNickname() const;
@@ -27,7 +26,6 @@ public:
 	std::string			getBuffer() const;
 	bool				isAuthenticated() const;
 
-	// Setters
 	void				setNickname(const std::string &nickname);
 	void				setUsername(const std::string &username);
 	void				setAuthenticated(bool auth);
@@ -35,7 +33,7 @@ public:
 	// Buffer management
 	void				appendToBuffer(const std::string &data);
 	void				clearBuffer();
-	std::string&		getBufferRef();	// Retorna referência para modificar
+	std::string&		getBufferRef();	// Retorna referência para modificar. Essa parte fiz com a ajuda do ChatGPT, achei que seria mais prático para processar os comandos. Mas preciso avaliar se é a melhor abordagem depois.
 };
 
 #endif
