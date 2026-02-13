@@ -255,7 +255,7 @@ void Server::processCommand(int fd, const std::string &command)
 	{
 		sendToClient(fd, "ERROR :You must authenticate first with PASS");
 	}
-	else
+	else if(!_clients[fd]->isAuthenticated())
 	{
 		sendToClient(fd, "421 " + cmd + " :Unknown command");
 	}
@@ -267,12 +267,15 @@ void Server:: cmd_execute(std::string cmd, std::string args, int fd)
 	if(cmd == "pass"  || cmd == "PASS")
 		cmdPass(fd, args);
 	if(cmd == "NICK" || cmd == "nick")
-		set_nick(fd, args);	
-	
+		set_nickname(args, fd);
+	if(cmd == "")
+}
+void Server::set_nickname(std::string cmd, int fd)
+{
+	Client *cliente = _clients[fd];
+	cliente->setNickname(cmd);
 }
 //Cefelix > pessoal, aqui comecei fazendo o parser dos Comandos IRC. Por enquanto só implementei o PASS, mas a ideia é ir implementando os outros aos poucos. O modelo é bem simples: separar o comando dos argumentos, converter o comando para maiúsculas e depois usar if/else para chamar a função correspondente. Sei que isso não é super escalável, mas para um projeto pequeno como esse acho que é suficiente. Se fosse algo maior, aí sim eu consideraria uma abordagem mais sofisticada, tipo map de string -> função ou algo do tipo. O que vocês acham?
-
-
 void Server::cmdPass(int fd, const std::string &args)
 {
 	Client *client = _clients[fd];
@@ -290,7 +293,6 @@ void Server::cmdPass(int fd, const std::string &args)
 	}
 	if (args == _password)
 	{
-		std::cout <<"==>>" << args <<std::endl;
 		client->setAuthenticated(true);
 		std::cout << "Client fd " << fd << " authenticated successfully" << std::endl;
 		// Não enviamos mensagem de sucesso aqui - o cliente ainda precisa de NICK e USER
