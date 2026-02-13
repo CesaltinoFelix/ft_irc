@@ -1,7 +1,7 @@
 #include "Client.hpp"
 
 Client::Client(int fd, const std::string &ipAddr)
-	: _fd(fd), _ipAddr(ipAddr), _authenticated(false)
+	: _fd(fd), _ipAddr(ipAddr), _authenticated(false) , _nick(false) , _user(false)
 {
 }
 
@@ -39,14 +39,16 @@ bool Client::isAuthenticated() const
 	return _authenticated;
 }
 
-void Client::setNickname(const std::string &nickname)
+void Client::setNickname(const std::string &nickname , bool id)
 {
 	_nickname = nickname;
+	_nick = id;
 }
 
-void Client::setUsername(const std::string &username)
+void Client::setUsername(const std::string &username, bool id)
 {
 	_username = username;
+	_user = id;
 }
 
 void Client::setAuthenticated(bool auth)
@@ -68,4 +70,14 @@ void Client::clearBuffer()
 std::string& Client::getBufferRef()
 {
 	return _buffer;
+}
+
+bool Client::get_nick()const
+{
+	return this->_nick;
+}
+
+bool Client::get_user()const
+{
+	return this->_user;
 }

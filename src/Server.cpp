@@ -226,7 +226,6 @@ std::string Server::getPassword() const
 	return (_password);
 }
 
-
 void Server::sendToClient(int fd, const std::string &message)
 {
 	std::string fullMessage = message + "\r\n";
@@ -249,7 +248,6 @@ void Server::processCommand(int fd, const std::string &command)
 		cmd = command;
 		args = "";
 	}
-
 	cmd_execute(cmd ,args , fd);
 	if (!_clients[fd]->isAuthenticated())
 	{
@@ -264,16 +262,34 @@ void Server::processCommand(int fd, const std::string &command)
 void Server:: cmd_execute(std::string cmd, std::string args, int fd)
 {
 	
+	Client *cliente = _clients[fd];
+	std::cout << cmd <<std::endl;
 	if(cmd == "pass"  || cmd == "PASS")
-		cmdPass(fd, args);
-	if(cmd == "NICK" || cmd == "nick")
-		set_nickname(args, fd);
-	if(cmd == "")
+	cmdPass(fd, args);
+	else if(cmd == "NICK" || cmd == "nick")
+	set_nickname(args, fd , true);
+	else if(cmd == "user" ||cmd == "USER")
+	set_username(args, fd, true);
+	else if(cmd == "quit" || cmd == "QUIT")
+	{
+		std::cout <<"OK QUIT"<<std::endl;
+	}
+	else if(cliente->isAuthenticated() && cliente->get_nick() && cliente->get_user())
+	{
+		std::cout <<"User autenticated and cadastred "<<std::endl;
+	}
+	
 }
-void Server::set_nickname(std::string cmd, int fd)
+void Server::set_nickname(std::string cmd, int fd , bool id)
 {
 	Client *cliente = _clients[fd];
-	cliente->setNickname(cmd);
+	cliente->setNickname(cmd, id);
+}
+
+void Server::set_username(std::string &username, int fd, bool id)
+{
+	Client *cliente = _clients[fd];
+	cliente->setUsername(username, id);	
 }
 //Cefelix > pessoal, aqui comecei fazendo o parser dos Comandos IRC. Por enquanto só implementei o PASS, mas a ideia é ir implementando os outros aos poucos. O modelo é bem simples: separar o comando dos argumentos, converter o comando para maiúsculas e depois usar if/else para chamar a função correspondente. Sei que isso não é super escalável, mas para um projeto pequeno como esse acho que é suficiente. Se fosse algo maior, aí sim eu consideraria uma abordagem mais sofisticada, tipo map de string -> função ou algo do tipo. O que vocês acham?
 void Server::cmdPass(int fd, const std::string &args)

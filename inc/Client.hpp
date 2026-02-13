@@ -14,6 +14,8 @@ private:
 	std::string			_username;
 	std::string			_buffer;		// Buffer para mensagens incompletas
 	bool				_authenticated;	// Se passou a senha correta
+	bool				_nick;
+	bool				_user;
 
 public:
 	Client(int fd, const std::string &ipAddr);
@@ -26,14 +28,15 @@ public:
 	std::string			getBuffer() const;
 	bool				isAuthenticated() const;
 
-	void				setNickname(const std::string &nickname);
-	void				setUsername(const std::string &username);
+	void				setNickname(const std::string &nickname, bool id);
+	void				setUsername(const std::string &username , bool id);
 	void				setAuthenticated(bool auth);
-
 	// Buffer management
 	void				appendToBuffer(const std::string &data);
 	void				clearBuffer();
 	std::string&		getBufferRef();	// Retorna referência para modificar. Essa parte fiz com a ajuda do ChatGPT, achei que seria mais prático para processar os comandos. Mas preciso avaliar se é a melhor abordagem depois.
+	bool get_nick() const;
+	bool get_user()const;
 };
 
 #endif

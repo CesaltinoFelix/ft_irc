@@ -46,8 +46,8 @@ public:
 	int			getServerSocket() const;
 	std::string	getPassword() const;
 	void cmd_execute(std::string cmd, std::string args, int fd);
-	void set_username(std::string& username, int fd);
-	void set_nickname(std::string cmd, int fd);
+	void set_username(std::string &username, int fd , bool id);
+	void set_nickname(std::string cmd, int fd, bool id);
 };
 
 #endif
