@@ -1,7 +1,7 @@
 #include "Client.hpp"
 
 Client::Client(int fd, const std::string &ipAddr)
-	: _fd(fd), _ipAddr(ipAddr), _authenticated(false)
+	: _fd(fd), _ipAddr(ipAddr), _authenticated(false), _registered(false)
 {
 }
 
@@ -52,6 +52,16 @@ void Client::setUsername(const std::string &username)
 void Client::setAuthenticated(bool auth)
 {
 	_authenticated = auth;
+}
+
+bool Client::isRegistered() const
+{
+	return _registered;
+}
+
+void Client::setRegistered(bool reg)
+{
+	_registered = reg;
 }
 
 // Buffer management... Acha que isso pode ser melhorado depois, mas por enquanto vamos manter simples

@@ -41,6 +41,8 @@ public:
 	void	sendToClient(int fd, const std::string &message);
 
 	void	cmdPass(int fd, const std::string &args);
+	void	cmdNick(int fd, const std::string &args);
+	void	cmdUser(int fd, const std::string &args);
 
 	int			getPort() const;
 	int			getServerSocket() const;

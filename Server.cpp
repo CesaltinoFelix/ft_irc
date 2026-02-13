@@ -180,7 +180,7 @@ void Server::run()
 
 		if (pollCount < 0)
 		{
-			std::cer << "Error in poll()" << std::endl;
+			std::cerr << "Error in poll()" << std::endl;
 			break;
 		}
 
@@ -253,8 +253,13 @@ void Server::processCommand(int fd, const std::string &command)
 	for (size_t i = 0; i < cmd.length(); i++)
 		cmd[i] = toupper(cmd[i]);
 
+	std::cout << "Command: " << cmd << ", Args: " << args << std::endl;
 	if (cmd == "PASS")
 		cmdPass(fd, args);
+	if(cmd == "NICK")
+		cmdNick(fd, args);
+	else if (cmd == "USER")
+		cmdUser(fd, args);
 	else if (!_clients[fd]->isAuthenticated())
 	{
 		sendToClient(fd, "ERROR :You must authenticate first with PASS");
@@ -265,7 +270,64 @@ void Server::processCommand(int fd, const std::string &command)
 	}
 }
 
-//Cefelix > pessoal, aqui comecei fazendo o parser dos Comandos IRC. Por enquanto só implementei o PASS, mas a ideia é ir implementando os outros aos poucos. O modelo é bem simples: separar o comando dos argumentos, converter o comando para maiúsculas e depois usar if/else para chamar a função correspondente. Sei que isso não é super escalável, mas para um projeto pequeno como esse acho que é suficiente. Se fosse algo maior, aí sim eu consideraria uma abordagem mais sofisticada, tipo map de string -> função ou algo do tipo. O que vocês acham?
+
+void Server::cmdNick(int fd, const std::string &args)
+{
+	Client *client = _clients[fd];
+
+	if (args.empty())
+	{
+		sendToClient(fd, "431 :No nickname given");
+		return;
+	}
+
+	std::string nickname = args;
+
+	// Remove trailing spaces or something? But for now, assume args is the nickname.
+
+	// Check for spaces
+	if (nickname.find(' ') != std::string::npos)
+	{
+		sendToClient(fd, "432 " + nickname + " :Erroneous nickname");
+		return;
+	}
+
+	// Check length (IRC standard: 1-9 chars)
+	if (nickname.length() < 1 || nickname.length() > 9)
+	{
+		sendToClient(fd, "432 " + nickname + " :Erroneous nickname");
+		return;
+	}
+
+	// Check if already in use
+	for (std::map<int, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+	{
+		if (it->first != fd && it->second->getNickname() == nickname)
+		{
+			sendToClient(fd, "433 " + nickname + " :Nickname is already in use");
+			return;
+		}
+	}
+
+	// Set nickname
+	client->setNickname(nickname);
+	std::cout << "Client fd " << fd << " set nickname to " << nickname << std::endl;
+
+	// If authenticated and has username, set registered
+	if (client->isAuthenticated() && !client->getUsername().empty())
+	{
+		client->setRegistered(true);
+		std::cout << "Client fd " << fd << " is now registered" << std::endl;
+		// Send welcome message? But since no USER, maybe not yet.
+	}
+}
+
+void Server::cmdUser(int fd, const std::string &args)
+{
+	(void)fd;
+	(void)args;
+	// Implementação do comando USER
+}
 
 void Server::cmdPass(int fd, const std::string &args)
 {

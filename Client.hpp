@@ -14,6 +14,8 @@ private:
 	std::string			_username;
 	std::string			_buffer;		// Buffer para mensagens incompletas
 	bool				_authenticated;	// Se passou a senha correta
+	//bool				_issuperadmin;	//  Se é superadmin (pode usar comandos de administração, tipo KICK, BAN, etc)
+	bool				_registered;	// Se já enviou NICK e USER (requisito para se registrar no servidor)
 
 public:
 	Client(int fd, const std::string &ipAddr);
@@ -25,10 +27,12 @@ public:
 	std::string			getUsername() const;
 	std::string			getBuffer() const;
 	bool				isAuthenticated() const;
+	bool				isRegistered() const;
 
 	void				setNickname(const std::string &nickname);
 	void				setUsername(const std::string &username);
 	void				setAuthenticated(bool auth);
+	void				setRegistered(bool reg);
 
 	// Buffer management
 	void				appendToBuffer(const std::string &data);
