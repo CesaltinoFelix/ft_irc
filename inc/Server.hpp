@@ -12,8 +12,13 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <cstring>
-
 #include "Client.hpp"
+#include "Chanell.hpp"
+
+#define RED "\e[1;31m"
+#define WHI "\e[0;37m"
+#define GRE "\e[1;32m"
+#define YEL "\e[1;33m"
 
 class Server
 {
@@ -25,6 +30,7 @@ private:
 
 	std::vector<struct pollfd>	_pollFds;		// Vetor de file descriptors para poll()
 	std::map<int, Client*>		_clients;		// Map de fd -> Client*
+	std::map<std::string, Channel*> _channels;  
 
 public:
 	Server(int port, const std::string &password);
@@ -48,6 +54,8 @@ public:
 	void cmd_execute(std::string cmd, std::string args, int fd);
 	void set_username(std::string &username, int fd , bool id);
 	void set_nickname(std::string cmd, int fd, bool id);
+	void cmdJoin(int fd, const std::string& channelName);
+	void cmdPrivmsg(int fd, const std::string &target, const std::string &message);
 };
 
 #endif

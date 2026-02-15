@@ -10,7 +10,7 @@ Server::Server(int port, const std::string &password)
 Server::~Server()
 {
 	// Limpar todos os clientes
-	for (std::map<int, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
 		close(it->first);
 		delete it->second;
@@ -45,7 +45,7 @@ void Server::init()
 
 	_serverAddr.sin_family = AF_INET;
 	_serverAddr.sin_addr.s_addr = INADDR_ANY;
-	_serverAddr.sin_port = htons(_port);	
+	_serverAddr.sin_port = htons(_port);
 
 	if (bind(_serverSocket, (struct sockaddr *)&_serverAddr, sizeof(_serverAddr)) < 0)
 	{
@@ -70,8 +70,8 @@ void Server::init()
 
 void Server::acceptConnection()
 {
-	struct sockaddr_in	clientAddr;
-	socklen_t			addrLen = sizeof(clientAddr);
+	struct sockaddr_in clientAddr;
+	socklen_t addrLen = sizeof(clientAddr);
 
 	int clientSocket = accept(_serverSocket, (struct sockaddr *)&clientAddr, &addrLen);
 	if (clientSocket < 0)
@@ -156,7 +156,7 @@ void Server::removeClient(int fd)
 		}
 	}
 
-	std::map<int, Client*>::iterator it = _clients.find(fd);
+	std::map<int, Client *>::iterator it = _clients.find(fd);
 	if (it != _clients.end())
 	{
 		delete it->second;
@@ -248,39 +248,109 @@ void Server::processCommand(int fd, const std::string &command)
 		cmd = command;
 		args = "";
 	}
-	cmd_execute(cmd ,args , fd);
+	cmd_execute(cmd, args, fd);
 	if (!_clients[fd]->isAuthenticated())
 	{
 		sendToClient(fd, "ERROR :You must authenticate first with PASS");
 	}
-	else if(!_clients[fd]->isAuthenticated())
+	else if (!_clients[fd]->isAuthenticated())
 	{
 		sendToClient(fd, "421 " + cmd + " :Unknown command");
 	}
-	
 }
-void Server:: cmd_execute(std::string cmd, std::string args, int fd)
+void Server::cmd_execute(std::string cmd, std::string args, int fd)
 {
-	
+
 	Client *cliente = _clients[fd];
-	std::cout << cmd <<std::endl;
-	if(cmd == "pass"  || cmd == "PASS")
-	cmdPass(fd, args);
-	else if(cmd == "NICK" || cmd == "nick")
-	set_nickname(args, fd , true);
-	else if(cmd == "user" ||cmd == "USER")
-	set_username(args, fd, true);
-	else if(cmd == "quit" || cmd == "QUIT")
+	std::cout << cmd << std::endl;
+	if (cmd == "pass" || cmd == "PASS")
 	{
-		std::cout <<"OK QUIT"<<std::endl;
+		cmdPass(fd, args);
+		sendToClient(fd, "NICK: ");
 	}
-	else if(cliente->isAuthenticated() && cliente->get_nick() && cliente->get_user())
+	else if (cmd == "NICK" || cmd == "nick")
 	{
-		std::cout <<"User autenticated and cadastred "<<std::endl;
+		set_nickname(args, fd, true);
+		sendToClient(fd, "USER: ");
 	}
-	
+	else if (cmd == "user" || cmd == "USER")
+	{
+		set_username(args, fd, true);
+		if (cliente->isAuthenticated() && cliente->get_nick() && cliente->get_user())
+		{
+			sendToClient(fd, ":User Autenticated and cadastraded");
+			sendToClient(fd, "==================================================");
+			sendToClient(fd, "==================================================");
+			sendToClient(fd, "============= WELCOME TO FT_IRC ===================");
+			sendToClient(fd, "===================================================");
+			sendToClient(fd, "===================================================");
+			sendToClient(fd, "COMANDS");
+			sendToClient(fd, "KICK");
+			sendToClient(fd, "INVITE");
+			sendToClient(fd, "JOIN");
+			sendToClient(fd, "MODE");
+		}
+	}
+	else if (cmd == "quit" || cmd == "QUIT")
+	{
+		removeClient(fd);
+	}
+	else if (cmd == "JOIN" || cmd == "join")
+	{
+		cmdJoin(fd, args);
+	}
+	else if (cmd == "PRIVMSG" || cmd == "privmsg")
+	{
+		size_t spacePos = args.find(' ');
+		if (spacePos == std::string::npos)
+		{
+			sendToClient(fd, "411 :No recipient given");
+			return;
+		}
+
+		std::string target = args.substr(0, spacePos); // #avisos
+		std::string msg = args.substr(spacePos + 1);   // :Olá galera
+
+		if (msg[0] == ':')
+			msg.erase(0, 1); // remove o :
+
+		cmdPrivmsg(fd, target, msg);
+	}
+
+	else
+	{
+		sendToClient(fd, "UNKNOWN  COMAND");
+	}
 }
-void Server::set_nickname(std::string cmd, int fd , bool id)
+
+void Server::cmdPrivmsg(int fd, const std::string &target, const std::string &message)
+{
+	Client *sender = _clients[fd];
+
+	if (target.empty() || message.empty())
+	{
+		sendToClient(fd, "412 :No text to send");
+		return;
+	}
+	if (target[0] == '#')
+	{
+		if (_channels.find(target) == _channels.end())
+		{
+			sendToClient(fd, "403 " + target + " :No such channel");
+			return;
+		}
+
+		Channel *channel = _channels[target];
+		std::string fullMessage = ":" + sender->getNickname() + " PRIVMSG " + target + " :" + message + "\r\n";
+		channel->broadcast(fullMessage);
+	}
+	else
+	{
+		sendToClient(fd, "401 " + target + " :No such nick");
+	}
+}
+
+void Server::set_nickname(std::string cmd, int fd, bool id)
 {
 	Client *cliente = _clients[fd];
 	cliente->setNickname(cmd, id);
@@ -289,19 +359,19 @@ void Server::set_nickname(std::string cmd, int fd , bool id)
 void Server::set_username(std::string &username, int fd, bool id)
 {
 	Client *cliente = _clients[fd];
-	cliente->setUsername(username, id);	
+	cliente->setUsername(username, id);
 }
-//Cefelix > pessoal, aqui comecei fazendo o parser dos Comandos IRC. Por enquanto só implementei o PASS, mas a ideia é ir implementando os outros aos poucos. O modelo é bem simples: separar o comando dos argumentos, converter o comando para maiúsculas e depois usar if/else para chamar a função correspondente. Sei que isso não é super escalável, mas para um projeto pequeno como esse acho que é suficiente. Se fosse algo maior, aí sim eu consideraria uma abordagem mais sofisticada, tipo map de string -> função ou algo do tipo. O que vocês acham?
+// Cefelix > pessoal, aqui comecei fazendo o parser dos Comandos IRC. Por enquanto só implementei o PASS, mas a ideia é ir implementando os outros aos poucos. O modelo é bem simples: separar o comando dos argumentos, converter o comando para maiúsculas e depois usar if/else para chamar a função correspondente. Sei que isso não é super escalável, mas para um projeto pequeno como esse acho que é suficiente. Se fosse algo maior, aí sim eu consideraria uma abordagem mais sofisticada, tipo map de string -> função ou algo do tipo. O que vocês acham?
 void Server::cmdPass(int fd, const std::string &args)
 {
 	Client *client = _clients[fd];
-	
+
 	if (client->isAuthenticated())
 	{
 		sendToClient(fd, "462 :You may not reregister");
 		return;
 	}
-	
+
 	if (args.empty())
 	{
 		sendToClient(fd, "461 PASS :Not enough parameters");
@@ -309,6 +379,7 @@ void Server::cmdPass(int fd, const std::string &args)
 	}
 	if (args == _password)
 	{
+		std::cout << "--->" << args << std::endl;
 		client->setAuthenticated(true);
 		std::cout << "Client fd " << fd << " authenticated successfully" << std::endl;
 		// Não enviamos mensagem de sucesso aqui - o cliente ainda precisa de NICK e USER
@@ -318,4 +389,31 @@ void Server::cmdPass(int fd, const std::string &args)
 		sendToClient(fd, "464 :Password incorrect");
 		std::cout << "Client fd " << fd << " failed authentication (wrong password)" << std::endl;
 	}
+}
+
+void Server::cmdJoin(int fd, const std::string &channelName)
+{
+	Client *client = _clients[fd];
+
+	if (!client->isAuthenticated() || !client->get_nick() || !client->get_user())
+	{
+		sendToClient(fd, "451 :You have not registered");
+		return;
+	}
+
+	if (channelName.empty() || channelName[0] != '#')
+	{
+		sendToClient(fd, "476 :Bad Channel Mask");
+		return;
+	}
+
+	// Se canal não existe → cria
+	if (_channels.find(channelName) == _channels.end())
+	{
+		_channels[channelName] = new Channel(channelName);
+	}
+	Channel *channel = _channels[channelName];
+	channel->addClient(client);
+	std::string joinMsg = ":" + client->getNickname() + " JOIN " + channelName + "\r\n";
+	channel->broadcast(joinMsg);
 }
