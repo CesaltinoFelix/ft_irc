@@ -307,46 +307,22 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 			sendToClient(fd, "411 :No recipient given");
 			return;
 		}
-
 		std::string target = args.substr(0, spacePos); // #avisos
 		std::string msg = args.substr(spacePos + 1);   // :Olá galera
-
-		if (msg[0] == ':')
-			msg.erase(0, 1); // remove o :
-
-		cmdPrivmsg(fd, target, msg);
+		if(target[0] == '#')
+		{
+			cmdPrivmsg(fd, target, msg);
+		}
+		else
+		{
+			if(msg[0] == ':')
+				msg.erase(0, 1);
+			cmdPrivmsg_to_client(fd, target, msg);
+		}
 	}
-
 	else
 	{
 		sendToClient(fd, "UNKNOWN  COMAND");
-	}
-}
-
-void Server::cmdPrivmsg(int fd, const std::string &target, const std::string &message)
-{
-	Client *sender = _clients[fd];
-
-	if (target.empty() || message.empty())
-	{
-		sendToClient(fd, "412 :No text to send");
-		return;
-	}
-	if (target[0] == '#')
-	{
-		if (_channels.find(target) == _channels.end())
-		{
-			sendToClient(fd, "403 " + target + " :No such channel");
-			return;
-		}
-
-		Channel *channel = _channels[target];
-		std::string fullMessage = ":" + sender->getNickname() + " PRIVMSG " + target + " :" + message + "\r\n";
-		channel->broadcast(fullMessage);
-	}
-	else
-	{
-		sendToClient(fd, "401 " + target + " :No such nick");
 	}
 }
 
@@ -391,29 +367,3 @@ void Server::cmdPass(int fd, const std::string &args)
 	}
 }
 
-void Server::cmdJoin(int fd, const std::string &channelName)
-{
-	Client *client = _clients[fd];
-
-	if (!client->isAuthenticated() || !client->get_nick() || !client->get_user())
-	{
-		sendToClient(fd, "451 :You have not registered");
-		return;
-	}
-
-	if (channelName.empty() || channelName[0] != '#')
-	{
-		sendToClient(fd, "476 :Bad Channel Mask");
-		return;
-	}
-
-	// Se canal não existe → cria
-	if (_channels.find(channelName) == _channels.end())
-	{
-		_channels[channelName] = new Channel(channelName);
-	}
-	Channel *channel = _channels[channelName];
-	channel->addClient(client);
-	std::string joinMsg = ":" + client->getNickname() + " JOIN " + channelName + "\r\n";
-	channel->broadcast(joinMsg);
-}

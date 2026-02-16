@@ -3,11 +3,11 @@ CXX         = c++
 CXXFLAGS    = -Wall -Wextra -Werror -std=c++98 -I./inc
 
 SRC_DIR     = src
-#CMD_DIR     = cmd
+CMD_DIR     = cmd
 INC_DIR     = inc
 OBJ_DIR     = obj
 
-SRCS        = $(wildcard $(SRC_DIR)/*.cpp) #$(wildcard $(CMD_DIR)/*.cpp)
+SRCS        = $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(CMD_DIR)/*.cpp)
 OBJS        = $(SRCS:%.cpp=$(OBJ_DIR)/%.o)
 
 RM          = rm -rf
