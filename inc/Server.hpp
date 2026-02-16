@@ -56,6 +56,8 @@ public:
 	void set_nickname(std::string cmd, int fd, bool id);
 	void cmdJoin(int fd, const std::string& channelName);
 	void cmdPrivmsg(int fd, const std::string &target, const std::string &message);
+
+	bool isNicknameInUse(const std::string& nick);
 };
 
 #endif
