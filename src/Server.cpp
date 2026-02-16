@@ -249,14 +249,10 @@ void Server::processCommand(int fd, const std::string &command)
 		args = "";
 	}
 	cmd_execute(cmd, args, fd);
-	if (!_clients[fd]->isAuthenticated())
-	{
-		sendToClient(fd, "ERROR :You must authenticate first with PASS");
-	}
-	else if (!_clients[fd]->isAuthenticated())
-	{
-		sendToClient(fd, "421 " + cmd + " :Unknown command");
-	}
+	if (cmd != "PASS" && cmd != "NICK" && cmd != "USER" && cmd != "QUIT") {
+        sendToClient(fd, "451 :You have not registered");
+        return;
+    }
 }
 void Server::cmd_execute(std::string cmd, std::string args, int fd)
 {
@@ -350,10 +346,14 @@ void Server::cmdPrivmsg(int fd, const std::string &target, const std::string &me
 	}
 }
 
-void Server::set_nickname(std::string cmd, int fd, bool id)
+void Server::set_nickname(std::string nick, int fd, bool id)
 {
+	if (isNicknameInUse(nick)) {
+		sendToClient(fd, "433 * " + nick + " :Nickname is already in use");
+		return;
+	}
 	Client *cliente = _clients[fd];
-	cliente->setNickname(cmd, id);
+	cliente->setNickname(nick, id);
 }
 
 void Server::set_username(std::string &username, int fd, bool id)
@@ -416,4 +416,14 @@ void Server::cmdJoin(int fd, const std::string &channelName)
 	channel->addClient(client);
 	std::string joinMsg = ":" + client->getNickname() + " JOIN " + channelName + "\r\n";
 	channel->broadcast(joinMsg);
+}
+
+bool Server::isNicknameInUse(const std::string& nick) {
+	std::map<int, Client*>::iterator it;
+
+	for (it = _clients.begin(); it != _clients.end(); ++it) {
+		if (it->second->getNickname() == nick)
+			return (true);
+	}
+	return (false);
 }
