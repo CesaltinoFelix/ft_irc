@@ -271,7 +271,8 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 	std::cout << cmd << std::endl;
 	if (cmd == PASS) {
 		cmdPass(fd, args);
-		sendToClient(fd, "NICK: ");
+		if (cliente->isAuthenticated())
+			sendToClient(fd, "NICK: ");
 	} else if (cmd == NICK) {
 		set_nickname(args, fd, true);
 		if (_clients[fd]->get_nick())
@@ -348,6 +349,12 @@ void Server::cmdPrivmsg(int fd, const std::string &target, const std::string &me
 
 void Server::set_nickname(std::string nick, int fd, bool id)
 {
+	Client *cliente = _clients[fd];
+
+	if (!cliente->isAuthenticated()) {
+		sendToClient(fd, NOT_REGISTERED);
+		return;
+	}
 	if (nick.empty()) {
 		sendToClient(fd, "431 :No nickname given");
 		return;
@@ -359,8 +366,6 @@ void Server::set_nickname(std::string nick, int fd, bool id)
 		sendToClient(fd, "433 * " + nick + " :Nickname is already in use");
 		return;
 	}
-
-	Client *cliente = _clients[fd];
 	cliente->setNickname(nick, id);
 	std::cout << "fd" << fd << " set nickname: " << nick << std::endl;
 }
