@@ -351,12 +351,21 @@ void Server::cmdPrivmsg(int fd, const std::string &target, const std::string &me
 
 void Server::set_nickname(std::string nick, int fd, bool id)
 {
-	if (isNicknameInUse(nick)) {
+	if (nick.empty()) {
+		sendToClient(fd, "431 :No nickname given");
+		return;
+	}
+
+	Client* existing = getClientByNickname(nick);
+	
+	if (existing != NULL && existing->getFd() != fd) {
 		sendToClient(fd, "433 * " + nick + " :Nickname is already in use");
 		return;
 	}
+
 	Client *cliente = _clients[fd];
 	cliente->setNickname(nick, id);
+	std::cout << "fd" << fd << " set nickname: " << nick << std::endl;
 }
 
 void Server::set_username(std::string &username, int fd, bool id)
@@ -421,12 +430,14 @@ void Server::cmdJoin(int fd, const std::string &channelName)
 	channel->broadcast(joinMsg);
 }
 
-bool Server::isNicknameInUse(const std::string& nick) {
+Client* Server::getClientByNickname(const std::string& nickname) {
+	
 	std::map<int, Client*>::iterator it;
 
 	for (it = _clients.begin(); it != _clients.end(); ++it) {
-		if (it->second->getNickname() == nick)
-			return (true);
+		if (it->second->getNickname() == nickname) {
+			return (it->second);
+		}
 	}
-	return (false);
+	return (NULL);
 }

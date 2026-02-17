@@ -62,7 +62,7 @@ public:
 	void cmdJoin(int fd, const std::string& channelName);
 	void cmdPrivmsg(int fd, const std::string &target, const std::string &message);
 
-	bool isNicknameInUse(const std::string& nick);
+	Client* getClientByNickname(const std::string& nickname);
 };
 
 #endif
