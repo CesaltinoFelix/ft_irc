@@ -2,7 +2,6 @@
 
 void Server::cmdPrivmsg(int fd, const std::string &target, const std::string &message)
 {
-    std::cout <<"=====> "<< message<<std::endl;
     Client *sender = _clients[fd];
     if (target.empty() || message.empty())
     {

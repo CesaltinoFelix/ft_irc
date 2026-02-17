@@ -260,7 +260,6 @@ void Server::processCommand(int fd, const std::string &command)
 }
 void Server::cmd_execute(std::string cmd, std::string args, int fd)
 {
-
 	Client *cliente = _clients[fd];
 	std::cout << cmd << std::endl;
 	if (cmd == "pass" || cmd == "PASS")
@@ -277,53 +276,16 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 	{
 		set_username(args, fd, true);
 		if (cliente->isAuthenticated() && cliente->get_nick() && cliente->get_user())
-		{
-			sendToClient(fd, ":User Autenticated and cadastraded");
-			sendToClient(fd, "==================================================");
-			sendToClient(fd, "==================================================");
-			sendToClient(fd, "============= WELCOME TO FT_IRC ===================");
-			sendToClient(fd, "===================================================");
-			sendToClient(fd, "===================================================");
-			sendToClient(fd, "COMANDS");
-			sendToClient(fd, "KICK");
-			sendToClient(fd, "INVITE");
-			sendToClient(fd, "JOIN");
-			sendToClient(fd, "MODE");
-		}
+			info(fd);
 	}
 	else if (cmd == "quit" || cmd == "QUIT")
-	{
 		removeClient(fd);
-	}
 	else if (cmd == "JOIN" || cmd == "join")
-	{
 		cmdJoin(fd, args);
-	}
 	else if (cmd == "PRIVMSG" || cmd == "privmsg")
-	{
-		size_t spacePos = args.find(' ');
-		if (spacePos == std::string::npos)
-		{
-			sendToClient(fd, "411 :No recipient given");
-			return;
-		}
-		std::string target = args.substr(0, spacePos); // #avisos
-		std::string msg = args.substr(spacePos + 1);   // :Olá galera
-		if(target[0] == '#')
-		{
-			cmdPrivmsg(fd, target, msg);
-		}
-		else
-		{
-			if(msg[0] == ':')
-				msg.erase(0, 1);
-			cmdPrivmsg_to_client(fd, target, msg);
-		}
-	}
+		message( fd, args);
 	else
-	{
 		sendToClient(fd, "UNKNOWN  COMAND");
-	}
 }
 
 void Server::set_nickname(std::string cmd, int fd, bool id)

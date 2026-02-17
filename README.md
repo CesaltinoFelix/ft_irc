@@ -53,3 +53,19 @@ nc localhost 6667
 - [ ] Implementar protocolo IRC (comandos, canais, usuários)
 - [ ] Criar classes Client e Channel
 - [x] Implementar autenticação com senha (comando PASS)
+
+## Domigos-> Trabalhei nestas 6 funcoes e descrevei o que cada uma faz
+1 - void set_nickname(std::string cmd, int fd, bool id);
+2 - void set_username(std::string &username, int fd , bool id);
+3 - void cmdJoin(int fd, const std::string& channelName);
+4-  void cmdPrivmsg(int fd, const std::string &target, const std::string &message); 
+5 - void cmdPrivmsg_to_client(int fd, const std::string &target, const std::string &message);
+6-  void cmd_execute(std::string cmd, std::string args, int fd);
+
+1 - Reposnsavel por setar o nick_name do cliente durante o cadastro.
+2 - Responsavel por setar o user_name do cliente durante o cadastro.
+3 - Aqui esta funcao trabalha com a classe chanell que eu criei esta mesma funcao cria um denterminado canal e adiciona um cliente ao canal.
+4 - Esta função é responsável por mandar uma mensagem a todos os clientes conectados num canal
+5 - Esta função é responsável por mandar mensagem no privado em um determinado cliente.
+6 - Esta funcão criei-a com o intuito de executar todos os comandos passados pelos clientes
+
