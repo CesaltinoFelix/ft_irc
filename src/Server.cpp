@@ -248,12 +248,15 @@ void Server::processCommand(int fd, const std::string &command)
 		cmd = command;
 		args = "";
 	}
-	cmd_execute(cmd, args, fd);
-	if (cmd != "PASS" && cmd != "NICK" && cmd != "USER" && cmd != "QUIT") {
+
+	bool isPreAuthCmd = (cmd == PASS || cmd == NICK || cmd == USER || cmd == QUIT);
+	if (!_clients[fd]->isAuthenticated() && !isPreAuthCmd) {
         sendToClient(fd, "451 :You have not registered");
         return;
     }
+	cmd_execute(cmd, args, fd);
 }
+
 void Server::cmd_execute(std::string cmd, std::string args, int fd)
 {
 
