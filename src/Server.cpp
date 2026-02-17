@@ -146,23 +146,37 @@ void Server::handleClientData(int fd)
 
 void Server::removeClient(int fd)
 {
+	std::map<int, Client*>::iterator clientIt = _clients.find(fd);
 
-	for (std::vector<struct pollfd>::iterator it = _pollFds.begin(); it != _pollFds.end(); ++it)
-	{
-		if (it->fd == fd)
-		{
-			_pollFds.erase(it);
+	if (clientIt == _clients.end())
+		return;
+
+	Client* client = clientIt->second;
+	std::map<std::string, Channel*>::iterator channelIt;
+
+	for (channelIt = _channels.begin(); channelIt != _channels.end(); ) {
+		channelIt->second->removeClient(client);
+		if (channelIt->second->isEmpty()) {
+			std::map<std::string, Channel*>::iterator tmp = channelIt;
+			++channelIt;
+			delete tmp->second;
+			_channels.erase(tmp);
+		} else {
+			++channelIt;
+		}
+	}
+
+	std::vector<struct pollfd>::iterator pollIt = _pollFds.begin();
+
+	for (pollIt = _pollFds.begin(); pollIt != _pollFds.end(); ++pollIt) {
+		if (pollIt->fd == fd) {
+			_pollFds.erase(pollIt);
 			break;
 		}
 	}
 
-	std::map<int, Client *>::iterator it = _clients.find(fd);
-	if (it != _clients.end())
-	{
-		delete it->second;
-		_clients.erase(it);
-	}
-
+	delete client;
+	_clients.erase(clientIt);
 	close(fd);
 	std::cout << "Client removed. Total clients: " << _clients.size() << std::endl;
 }
