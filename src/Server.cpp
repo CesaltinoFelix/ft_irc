@@ -251,7 +251,7 @@ void Server::processCommand(int fd, const std::string &command)
 
 	bool isPreAuthCmd = (cmd == PASS || cmd == NICK || cmd == USER || cmd == QUIT);
 	if (!_clients[fd]->isAuthenticated() && !isPreAuthCmd) {
-        sendToClient(fd, "451 :You have not registered");
+        sendToClient(fd, NOT_REGISTERED);
         return;
     }
 	cmd_execute(cmd, args, fd);
@@ -262,18 +262,14 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 
 	Client *cliente = _clients[fd];
 	std::cout << cmd << std::endl;
-	if (cmd == "pass" || cmd == "PASS")
-	{
+	if (cmd == "pass" || cmd == PASS) {
 		cmdPass(fd, args);
 		sendToClient(fd, "NICK: ");
-	}
-	else if (cmd == "NICK" || cmd == "nick")
-	{
+	} else if (cmd == "nick" || cmd == NICK) {
 		set_nickname(args, fd, true);
-		sendToClient(fd, "USER: ");
-	}
-	else if (cmd == "user" || cmd == "USER")
-	{
+		if (_clients[fd]->get_nick())
+			sendToClient(fd, "USER: ");
+	} else if (cmd == "user" || cmd == USER) {
 		set_username(args, fd, true);
 		if (cliente->isAuthenticated() && cliente->get_nick() && cliente->get_user())
 		{
@@ -289,12 +285,11 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 			sendToClient(fd, "JOIN");
 			sendToClient(fd, "MODE");
 		}
-	}
-	else if (cmd == "quit" || cmd == "QUIT")
+	} else if (cmd == "quit" || cmd == QUIT)
 	{
 		removeClient(fd);
 	}
-	else if (cmd == "JOIN" || cmd == "join")
+	else if (cmd == "join" || cmd == JOIN)
 	{
 		cmdJoin(fd, args);
 	}
@@ -368,11 +363,29 @@ void Server::set_nickname(std::string nick, int fd, bool id)
 	std::cout << "fd" << fd << " set nickname: " << nick << std::endl;
 }
 
-void Server::set_username(std::string &username, int fd, bool id)
+void Server::set_username(std::string &args, int fd, bool id)
 {
 	Client *cliente = _clients[fd];
+
+	if (!cliente->isAuthenticated()) {
+		sendToClient(fd, NOT_REGISTERED);
+		return;
+	}
+
+	std::string username = args;
+	size_t spacePosition = args.find(' ');
+
+	if (spacePosition != std::string::npos)
+		username = args.substr(0, spacePosition);
+
+	if (username.empty()) {
+		sendToClient(fd, "461 USER :Not enough parameters");
+		return;
+	}
 	cliente->setUsername(username, id);
+	std::cout << "fd " << fd << " set username: " << username << std::endl;
 }
+
 // Cefelix > pessoal, aqui comecei fazendo o parser dos Comandos IRC. Por enquanto só implementei o PASS, mas a ideia é ir implementando os outros aos poucos. O modelo é bem simples: separar o comando dos argumentos, converter o comando para maiúsculas e depois usar if/else para chamar a função correspondente. Sei que isso não é super escalável, mas para um projeto pequeno como esse acho que é suficiente. Se fosse algo maior, aí sim eu consideraria uma abordagem mais sofisticada, tipo map de string -> função ou algo do tipo. O que vocês acham?
 void Server::cmdPass(int fd, const std::string &args)
 {
