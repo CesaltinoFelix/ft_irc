@@ -5,6 +5,9 @@
 #define NICK "NICK"
 #define USER "USER"
 #define QUIT "QUIT"
+#define JOIN "JOIN"
+
+#define NOT_REGISTERED "451 :You have not registered"
 
 #include <iostream>
 #include <string>
