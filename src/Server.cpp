@@ -249,12 +249,19 @@ void Server::processCommand(int fd, const std::string &command)
 		args = "";
 	}
 
-	bool isPreAuthCmd = (cmd == PASS || cmd == NICK || cmd == USER || cmd == QUIT);
+	std::string commandUpper = cmd;
+
+	for (size_t i = 0; i < commandUpper.size(); i++)
+		commandUpper[i] = std::toupper(commandUpper[i]);
+
+	bool isPreAuthCmd = (commandUpper == PASS || commandUpper == NICK ||
+			commandUpper == USER || commandUpper == QUIT);
+
 	if (!_clients[fd]->isAuthenticated() && !isPreAuthCmd) {
         sendToClient(fd, NOT_REGISTERED);
         return;
     }
-	cmd_execute(cmd, args, fd);
+	cmd_execute(commandUpper, args, fd);
 }
 
 void Server::cmd_execute(std::string cmd, std::string args, int fd)
@@ -262,14 +269,14 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 
 	Client *cliente = _clients[fd];
 	std::cout << cmd << std::endl;
-	if (cmd == "pass" || cmd == PASS) {
+	if (cmd == PASS) {
 		cmdPass(fd, args);
 		sendToClient(fd, "NICK: ");
-	} else if (cmd == "nick" || cmd == NICK) {
+	} else if (cmd == NICK) {
 		set_nickname(args, fd, true);
 		if (_clients[fd]->get_nick())
 			sendToClient(fd, "USER: ");
-	} else if (cmd == "user" || cmd == USER) {
+	} else if (cmd == USER) {
 		set_username(args, fd, true);
 		if (cliente->isAuthenticated() && cliente->get_nick() && cliente->get_user())
 		{
@@ -285,16 +292,11 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 			sendToClient(fd, "JOIN");
 			sendToClient(fd, "MODE");
 		}
-	} else if (cmd == "quit" || cmd == QUIT)
-	{
+	} else if (cmd == QUIT) {
 		removeClient(fd);
-	}
-	else if (cmd == "join" || cmd == JOIN)
-	{
+	} else if (cmd == JOIN) {
 		cmdJoin(fd, args);
-	}
-	else if (cmd == "PRIVMSG" || cmd == "privmsg")
-	{
+	} else if (cmd == PRIVMSG) {
 		size_t spacePos = args.find(' ');
 		if (spacePos == std::string::npos)
 		{
