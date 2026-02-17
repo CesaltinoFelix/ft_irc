@@ -1,6 +1,11 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
+#define PASS "PASS"
+#define NICK "NICK"
+#define USER "USER"
+#define QUIT "QUIT"
+
 #include <iostream>
 #include <string>
 #include <vector>
