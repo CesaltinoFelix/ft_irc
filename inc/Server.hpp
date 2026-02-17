@@ -6,6 +6,7 @@
 #define USER "USER"
 #define QUIT "QUIT"
 #define JOIN "JOIN"
+#define PRIVMSG "PRIVMSG"
 
 #define NOT_REGISTERED "451 :You have not registered"
 
@@ -22,6 +23,7 @@
 #include <cstring>
 #include "Client.hpp"
 #include "Chanell.hpp"
+#include <cctype>
 
 #define RED "\e[1;31m"
 #define WHI "\e[0;37m"
@@ -60,7 +62,7 @@ public:
 	int			getServerSocket() const;
 	std::string	getPassword() const;
 	void cmd_execute(std::string cmd, std::string args, int fd);
-	void set_username(std::string &username, int fd , bool id);
+	void set_username(std::string &args, int fd , bool id);
 	void set_nickname(std::string cmd, int fd, bool id);
 	void cmdJoin(int fd, const std::string& channelName);
 	void cmdPrivmsg(int fd, const std::string &target, const std::string &message);
