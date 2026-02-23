@@ -290,6 +290,22 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 		cmdJoin(fd, args);
 	else if (cmd == "PRIVMSG" || cmd == "privmsg")
 		message( fd, args);
+	else if(cmd == "MODE" || cmd == "mode")
+	{
+		size_t firstSpace = args.find(' ');
+		size_t secondSpace = args.find(' ', firstSpace + 1);
+		if (firstSpace != std::string::npos && secondSpace != std::string::npos)
+		{
+			std::string channel = args.substr(0, firstSpace);
+			std::string mode = args.substr(firstSpace + 1, secondSpace - firstSpace - 1);
+			std::string targetNick = args.substr(secondSpace + 1);
+			cmdMode(fd, channel, mode, targetNick);
+		}
+		else
+		{
+			sendToClient(fd, "461 MODE :Not enough parameters");
+		}
+	}
 	else
 		sendToClient(fd, "UNKNOWN  COMAND");
 }

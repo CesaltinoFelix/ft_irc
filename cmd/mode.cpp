@@ -1,7 +1,7 @@
 #include "Server.hpp"
 
 void Server::cmdMode(int fd, const std::string& channel, const std::string& mode, const std::string& targetNick) {
-    Chanell* chan = getChannel(channel);
+    Channel* chan = getChannel(channel);
     std::string nick = getNickByFd(fd);
     if (!chan || !chan->isOperator(nick)) {
         sendToClient(fd, "482 " + channel + " :You're not channel operator");

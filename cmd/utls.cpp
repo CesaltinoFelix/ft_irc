@@ -37,7 +37,7 @@ void Server::message(int fd, std::string args)
 	}
 }
 
-Client *Server::getChannel(std::string channelName)
+Channel *Server::getChannel(std::string channelName)
 {
 	std::map<std::string, Channel *>::iterator it = _channels.find(channelName);
 	if (it != _channels.end())
