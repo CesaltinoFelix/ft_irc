@@ -13,6 +13,16 @@ void Server::cmdMode(int fd, const std::string& channel, const std::string& mode
     } else if (mode == "-o") {
         chan->removeOperator(targetNick);
         sendToClient(fd, ":" + nick + " MODE " + channel + " -o " + targetNick);
+    } else if (mode == "+k") {
+        if (targetNick.empty()) {
+            sendToClient(fd, "461 MODE :Not enough parameters");
+            return;
+        }
+        chan->setKey(targetNick);
+        sendToClient(fd, ":" + nick + " MODE " + channel + " +k " + targetNick);
+    } else if (mode == "-k") {
+        chan->removeKey();
+        sendToClient(fd, ":" + nick + " MODE " + channel + " -k");
     }
 
 }
