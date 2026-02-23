@@ -1,5 +1,25 @@
 #include "../inc/Chanell.hpp"
-Channel::Channel(const std::string& name) : _name(name) {}
+Channel::Channel(const std::string& name) : _name(name), _key("") {}
+
+void Channel::setKey(const std::string& key) {
+    _key = key;
+}
+
+void Channel::removeKey() {
+    _key.clear();
+}
+
+bool Channel::hasKey() const {
+    return !_key.empty();
+}
+
+bool Channel::checkKey(const std::string& key) const {
+    return _key == key;
+}
+
+const std::string& Channel::getKey() const {
+    return _key;
+}
 
 Channel::~Channel() {}
 
