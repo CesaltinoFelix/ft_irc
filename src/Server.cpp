@@ -15,7 +15,13 @@ Server::~Server()
 		close(it->first);
 		delete it->second;
 	}
+	for(std::map<std::string, Channel*>::iterator it = _channels.begin(); it != _channels.end(); ++it)
+	{
+		delete it->second;
+	}
+	
 	_clients.clear();
+	_channels.clear();
 	std::cout << "Server object destroyed" << std::endl;
 }
 
