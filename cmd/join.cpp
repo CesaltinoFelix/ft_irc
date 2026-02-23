@@ -15,7 +15,6 @@ void Server::cmdJoin(int fd, const std::string &channelName)
         sendToClient(fd, "476 :Bad Channel Mask");
         return;
     }
-    // Parse key (senha) se fornecida: formato esperado "#canal senha"
     std::string chanNameOnly = channelName;
     std::string key = "";
     size_t spacePos = channelName.find(' ');
@@ -24,14 +23,12 @@ void Server::cmdJoin(int fd, const std::string &channelName)
         key = channelName.substr(spacePos + 1);
     }
 
-    // Se canal não existe → cria
     if (_channels.find(chanNameOnly) == _channels.end())
     {
         _channels[chanNameOnly] = new Channel(chanNameOnly);
     }
     Channel *channel = _channels[chanNameOnly];
 
-    // Se canal tem senha, exige senha correta
     if (channel->hasKey()) {
         if (key.empty() || !channel->checkKey(key)) {
             sendToClient(fd, "475 " + chanNameOnly + " :Cannot join channel (+k) - bad key");
