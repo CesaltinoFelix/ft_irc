@@ -10,6 +10,7 @@ class Channel
         std::string _name;
         std::vector<Client*> _clients;
         std::vector<std::string> _operators;
+        std::string _key;
     public:
         Channel(const std::string& name);
         ~Channel();
@@ -22,5 +23,11 @@ class Channel
         void addOperator(const std::string& nickname);
         bool isOperator(const std::string& nickname) const;
         void removeOperator(const std::string& nickname);
+
+        void setKey(const std::string& key);      
+        void removeKey();                         
+        bool hasKey() const;                      
+        bool checkKey(const std::string& key) const; 
+        const std::string& getKey() const;        
 };
 #endif
