@@ -5,6 +5,10 @@ Channel::~Channel() {}
 
 void Channel::addClient(Client* client)
 {
+    if(_operators.empty())
+    {
+        _operators.push_back(client->getNickname());
+    }
     _clients.push_back(client);
 }
 
@@ -38,4 +42,34 @@ const std::string& Channel::getName() const
     return _name;
 }
 
+void Channel::addOperator(const std::string& nickname)
+{
+    if (!isOperator(nickname))
+    {
+        _operators.push_back(nickname);
+    }
+}
 
+void Channel::removeOperator(const std::string& nickname)
+{
+    for (std::vector<std::string>::iterator it = _operators.begin(); it != _operators.end(); ++it)
+    {
+        if (*it == nickname)
+        {
+            _operators.erase(it);
+            break;
+        }
+    }
+}
+
+bool Channel::isOperator(const std::string& nickname) const
+{
+    for (size_t i = 0; i < _operators.size(); i++)
+    {
+        if (_operators[i] == nickname)
+        {
+            return true;
+        }
+    }
+    return false;
+}
