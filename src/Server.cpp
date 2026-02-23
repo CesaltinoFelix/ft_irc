@@ -19,7 +19,7 @@ Server::~Server()
 	{
 		delete it->second;
 	}
-	
+
 	_clients.clear();
 	_channels.clear();
 	std::cout << "Server object destroyed" << std::endl;
@@ -305,7 +305,7 @@ void Server::set_username(std::string &username, int fd, bool id)
 	Client *cliente = _clients[fd];
 	cliente->setUsername(username, id);
 }
-// Cefelix > pessoal, aqui comecei fazendo o parser dos Comandos IRC. Por enquanto só implementei o PASS, mas a ideia é ir implementando os outros aos poucos. O modelo é bem simples: separar o comando dos argumentos, converter o comando para maiúsculas e depois usar if/else para chamar a função correspondente. Sei que isso não é super escalável, mas para um projeto pequeno como esse acho que é suficiente. Se fosse algo maior, aí sim eu consideraria uma abordagem mais sofisticada, tipo map de string -> função ou algo do tipo. O que vocês acham?
+
 void Server::cmdPass(int fd, const std::string &args)
 {
 	Client *client = _clients[fd];
