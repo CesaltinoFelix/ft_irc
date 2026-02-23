@@ -15,13 +15,31 @@ void Server::cmdJoin(int fd, const std::string &channelName)
         sendToClient(fd, "476 :Bad Channel Mask");
         return;
     }
-    // Se canal não existe → cria
-    if (_channels.find(channelName) == _channels.end())
-    {
-        _channels[channelName] = new Channel(channelName);
+    // Parse key (senha) se fornecida: formato esperado "#canal senha"
+    std::string chanNameOnly = channelName;
+    std::string key = "";
+    size_t spacePos = channelName.find(' ');
+    if (spacePos != std::string::npos) {
+        chanNameOnly = channelName.substr(0, spacePos);
+        key = channelName.substr(spacePos + 1);
     }
-    Channel *channel = _channels[channelName];
+
+    // Se canal não existe → cria
+    if (_channels.find(chanNameOnly) == _channels.end())
+    {
+        _channels[chanNameOnly] = new Channel(chanNameOnly);
+    }
+    Channel *channel = _channels[chanNameOnly];
+
+    // Se canal tem senha, exige senha correta
+    if (channel->hasKey()) {
+        if (key.empty() || !channel->checkKey(key)) {
+            sendToClient(fd, "475 " + chanNameOnly + " :Cannot join channel (+k) - bad key");
+            return;
+        }
+    }
+
     channel->addClient(client);
-    std::string joinMsg = ":" + client->getNickname() + " JOIN " + channelName + "\r\n";
+    std::string joinMsg = ":" + client->getNickname() + " JOIN " + chanNameOnly + "\r\n";
     channel->broadcast(joinMsg);
 }
