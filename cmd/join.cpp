@@ -36,6 +36,11 @@ void Server::cmdJoin(int fd, const std::string &channelName)
         }
     }
 
+    if (channel->isFull()) {
+        sendToClient(fd, "471 " + chanNameOnly + " :Cannot join channel (+l) - channel is full");
+        return;
+    }
+
     channel->addClient(client);
     std::string joinMsg = ":" + client->getNickname() + " JOIN " + chanNameOnly + "\r\n";
     channel->broadcast(joinMsg);

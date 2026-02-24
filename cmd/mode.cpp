@@ -7,6 +7,25 @@ void Server::cmdMode(int fd, const std::string& channel, const std::string& mode
         sendToClient(fd, "482 " + channel + " :You're not channel operator");
         return;
     }
+    // -l deve ser processado antes de qualquer verificação de parâmetro
+    if (mode == "-l") {
+        chan->removeLimit();
+        sendToClient(fd, ":" + nick + " MODE " + channel + " -l");
+        return;
+    } else if (mode == "+l") {
+        if (targetNick.empty()) {
+            sendToClient(fd, "461 MODE :Not enough parameters");
+            return;
+        }
+        int limit = atoi(targetNick.c_str());
+        if (limit <= 0) {
+            sendToClient(fd, "472 " + targetNick + " :Invalid limit");
+            return;
+        }
+        chan->setLimit(limit);
+        sendToClient(fd, ":" + nick + " MODE " + channel + " +l " + targetNick);
+        return;
+    }
     if (mode == "+o") {
         chan->addOperator(targetNick);
         sendToClient(fd, ":" + nick + " MODE " + channel + " +o " + targetNick);

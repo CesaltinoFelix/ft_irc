@@ -14,6 +14,7 @@
 #include <cstring>
 #include "Client.hpp"
 #include "Chanell.hpp"
+#include <cstdlib>
 
 #define RED "\e[1;31m"
 #define WHI "\e[0;37m"

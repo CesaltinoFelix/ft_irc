@@ -1,5 +1,25 @@
 #include "../inc/Chanell.hpp"
-Channel::Channel(const std::string& name) : _name(name), _key("") {}
+Channel::Channel(const std::string& name) : _name(name), _key(""), _limit(0) {}
+// Métodos para limite (+l)
+void Channel::setLimit(int limit) {
+    _limit = limit;
+}
+
+void Channel::removeLimit() {
+    _limit = 0;
+}
+
+bool Channel::hasLimit() const {
+    return _limit > 0;
+}
+
+int Channel::getLimit() const {
+    return _limit;
+}
+
+bool Channel::isFull() const {
+    return hasLimit() && static_cast<int>(_clients.size()) >= _limit;
+}
 
 void Channel::setKey(const std::string& key) {
     _key = key;

@@ -11,6 +11,7 @@ class Channel
         std::vector<Client*> _clients;
         std::vector<std::string> _operators;
         std::string _key;
+        int _limit;
     public:
         Channel(const std::string& name);
         ~Channel();
@@ -29,5 +30,12 @@ class Channel
         bool hasKey() const;                      
         bool checkKey(const std::string& key) const; 
         const std::string& getKey() const;        
+
+        // Métodos para limite (+l)
+        void setLimit(int limit);                 // define limite
+        void removeLimit();                       // remove limite
+        bool hasLimit() const;                    // verifica se há limite
+        int getLimit() const;                     // retorna limite
+        bool isFull() const;                      // verifica se canal está cheio
 };
 #endif
