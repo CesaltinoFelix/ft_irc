@@ -7,7 +7,6 @@ void Server::cmdMode(int fd, const std::string& channel, const std::string& mode
         sendToClient(fd, "482 " + channel + " :You're not channel operator");
         return;
     }
-    // -l deve ser processado antes de qualquer verificação de parâmetro
     if (mode == "-l") {
         chan->removeLimit();
         sendToClient(fd, ":" + nick + " MODE " + channel + " -l");
