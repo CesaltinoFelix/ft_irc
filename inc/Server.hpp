@@ -14,6 +14,7 @@
 #include <cstring>
 #include "Client.hpp"
 #include "Chanell.hpp"
+#include <cstdlib>
 
 #define RED "\e[1;31m"
 #define WHI "\e[0;37m"
@@ -57,8 +58,11 @@ public:
 	void cmdJoin(int fd, const std::string& channelName);
 	void cmdPrivmsg(int fd, const std::string &target, const std::string &message); 
 	void cmdPrivmsg_to_client(int fd, const std::string &target, const std::string &message);
+	void cmdMode(int fd, const std::string& channel, const std::string& mode, const std::string& targetNick);
 	void info(int fd);
 	void message(int fd, std::string args);
+	std::string getNickByFd(int fd);
+	Channel* getChannel(std::string channelName);
 };
 
 #endif

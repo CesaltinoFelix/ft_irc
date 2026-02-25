@@ -15,7 +15,13 @@ Server::~Server()
 		close(it->first);
 		delete it->second;
 	}
+	for(std::map<std::string, Channel*>::iterator it = _channels.begin(); it != _channels.end(); ++it)
+	{
+		delete it->second;
+	}
+
 	_clients.clear();
+	_channels.clear();
 	std::cout << "Server object destroyed" << std::endl;
 }
 
@@ -284,6 +290,29 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 		cmdJoin(fd, args);
 	else if (cmd == "PRIVMSG" || cmd == "privmsg")
 		message( fd, args);
+	else if(cmd == "MODE" || cmd == "mode")
+	{
+		size_t firstSpace = args.find(' ');
+		if (firstSpace == std::string::npos)
+		{
+			sendToClient(fd, "461 MODE :Not enough parameters");
+			return;
+		}
+		std::string channel = args.substr(0, firstSpace);
+		std::string mode, targetNick;
+		size_t secondSpace = args.find(' ', firstSpace + 1);
+		if (secondSpace != std::string::npos)
+		{
+			mode = args.substr(firstSpace + 1, secondSpace - firstSpace - 1);
+			targetNick = args.substr(secondSpace + 1);
+		}
+		else
+		{
+			mode = args.substr(firstSpace + 1);
+			targetNick = "";
+		}
+		cmdMode(fd, channel, mode, targetNick);
+	}
 	else
 		sendToClient(fd, "UNKNOWN  COMAND");
 }
@@ -299,7 +328,7 @@ void Server::set_username(std::string &username, int fd, bool id)
 	Client *cliente = _clients[fd];
 	cliente->setUsername(username, id);
 }
-// Cefelix > pessoal, aqui comecei fazendo o parser dos Comandos IRC. Por enquanto só implementei o PASS, mas a ideia é ir implementando os outros aos poucos. O modelo é bem simples: separar o comando dos argumentos, converter o comando para maiúsculas e depois usar if/else para chamar a função correspondente. Sei que isso não é super escalável, mas para um projeto pequeno como esse acho que é suficiente. Se fosse algo maior, aí sim eu consideraria uma abordagem mais sofisticada, tipo map de string -> função ou algo do tipo. O que vocês acham?
+
 void Server::cmdPass(int fd, const std::string &args)
 {
 	Client *client = _clients[fd];
