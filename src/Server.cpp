@@ -9,7 +9,6 @@ Server::Server(int port, const std::string &password)
 
 Server::~Server()
 {
-	// Limpar todos os clientes
 	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
 		close(it->first);
@@ -34,7 +33,6 @@ void Server::init()
 		exit(1);
 	}
 
-	// Permite reutilizar a porta (evita "Address already in use")
 	int opt = 1;
 	if (setsockopt(_serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
 	{
@@ -42,7 +40,6 @@ void Server::init()
 		exit(1);
 	}
 
-	// Configurar socket como non-blocking. Descobri que isso é importante para o modelo de multiplexação com poll()
 	if (fcntl(_serverSocket, F_SETFL, O_NONBLOCK) < 0)
 	{
 		std::cerr << "Error setting socket to non-blocking" << std::endl;
@@ -86,7 +83,6 @@ void Server::acceptConnection()
 		return;
 	}
 
-	// Configurar socket do cliente como non-blocking
 	if (fcntl(clientSocket, F_SETFL, O_NONBLOCK) < 0)
 	{
 		std::cerr << "Error setting client socket to non-blocking" << std::endl;
@@ -100,7 +96,6 @@ void Server::acceptConnection()
 	clientPollFd.revents = 0;
 	_pollFds.push_back(clientPollFd);
 
-	// Criar objeto Client e adicionar ao map
 	std::string clientIp = inet_ntoa(clientAddr.sin_addr);
 	Client *newClient = new Client(clientSocket, clientIp);
 	_clients[clientSocket] = newClient;
@@ -130,7 +125,6 @@ void Server::handleClientData(int fd)
 	Client *client = _clients[fd];
 	client->appendToBuffer(std::string(buffer, bytesRead));
 
-	// Processar comandos completos (terminam com \r\n ou \n)
 	std::string &clientBuffer = client->getBufferRef();
 	size_t pos;
 	while ((pos = clientBuffer.find('\n')) != std::string::npos)
@@ -180,8 +174,6 @@ void Server::run()
 
 	while (1)
 	{
-		// poll() espera por eventos em todos os file descriptors
-		// -1 = espera indefinidamente
 		int pollCount = poll(&_pollFds[0], _pollFds.size(), -1);
 
 		if (pollCount < 0)
@@ -190,7 +182,6 @@ void Server::run()
 			break;
 		}
 
-		// Verificar cada fd para ver se tem eventos
 		for (size_t i = 0; i < _pollFds.size(); i++)
 		{
 			if (_pollFds[i].revents & POLLIN)
