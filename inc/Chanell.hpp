@@ -12,6 +12,10 @@ class Channel
         std::vector<std::string> _operators;
         std::string _key;
         int _limit;
+        bool _inviteOnly;
+        bool _topicRestricted;
+        std::string _topic;
+        std::vector<std::string> _invitedUsers;
     public:
         Channel(const std::string& name);
         ~Channel();
@@ -25,17 +29,29 @@ class Channel
         bool isOperator(const std::string& nickname) const;
         void removeOperator(const std::string& nickname);
 
-        void setKey(const std::string& key);      
-        void removeKey();                         
-        bool hasKey() const;                      
-        bool checkKey(const std::string& key) const; 
-        const std::string& getKey() const;        
+        void setKey(const std::string& key);
+        void removeKey();
+        bool hasKey() const;
+        bool checkKey(const std::string& key) const;
+        const std::string& getKey() const;
 
-        // Métodos para limite (+l)
-        void setLimit(int limit);                 // define limite
-        void removeLimit();                       // remove limite
-        bool hasLimit() const;                    // verifica se há limite
-        int getLimit() const;                     // retorna limite
-        bool isFull() const;                      // verifica se canal está cheio
+        void setLimit(int limit);
+        void removeLimit();
+        bool hasLimit() const;
+        int getLimit() const;
+        bool isFull() const;
+
+        void setInviteOnly(bool value);
+        bool isInviteOnly() const;
+        void addInvited(const std::string& nick);
+        void removeInvited(const std::string& nick);
+        bool isInvited(const std::string& nick) const;
+
+        void setTopicRestricted(bool value);
+        bool isTopicRestricted() const;
+        void setTopic(const std::string& topic);
+        const std::string& getTopic() const;
+
+        bool hasClient(const std::string& nick) const;
 };
 #endif
