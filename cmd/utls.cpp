@@ -13,6 +13,7 @@ void Server::info(int fd)
 	sendToClient(fd, "INVITE");
 	sendToClient(fd, "JOIN");
 	sendToClient(fd, "MODE");
+	sendToClient(fd, "TOPIC");
 }
 
 void Server::message(int fd, std::string args)
