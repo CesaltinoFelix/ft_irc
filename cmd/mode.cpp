@@ -41,6 +41,20 @@ void Server::cmdMode(int fd, const std::string& channel, const std::string& mode
     } else if (mode == "-k") {
         chan->removeKey();
         sendToClient(fd, ":" + nick + " MODE " + channel + " -k");
+    } else if (mode == "+i") {
+        chan->setInviteOnly(true);
+        sendToClient(fd, ":" + nick + " MODE " + channel + " +i");
+    } else if (mode == "-i") {
+        chan->setInviteOnly(false);
+        sendToClient(fd, ":" + nick + " MODE " + channel + " -i");
+    } else if (mode == "+t") {
+        chan->setTopicRestricted(true);
+        sendToClient(fd, ":" + nick + " MODE " + channel + " +t");
+    } else if (mode == "-t") {
+        chan->setTopicRestricted(false);
+        sendToClient(fd, ":" + nick + " MODE " + channel + " -t");
+    } else {
+        sendToClient(fd, "472 " + mode + " :is unknown mode char to me");
     }
 
 }
