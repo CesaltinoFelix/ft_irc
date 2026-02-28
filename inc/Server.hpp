@@ -29,8 +29,8 @@ private:
 	int							_serverSocket;
 	struct sockaddr_in			_serverAddr;
 
-	std::vector<struct pollfd>	_pollFds;		// Vetor de file descriptors para poll()
-	std::map<int, Client*>		_clients;		// Map de fd -> Client*
+	std::vector<struct pollfd>	_pollFds;
+	std::map<int, Client*>		_clients;
 	std::map<std::string, Channel*> _channels;  
 
 public:
@@ -56,6 +56,8 @@ public:
 	void set_username(std::string &username, int fd , bool id);
 	void set_nickname(std::string cmd, int fd, bool id);
 	void cmdJoin(int fd, const std::string& channelName);
+	void cmdInvite(int fd, const std::string& args);
+	void cmdTopic(int fd, const std::string& args);
 	void cmdPrivmsg(int fd, const std::string &target, const std::string &message); 
 	void cmdPrivmsg_to_client(int fd, const std::string &target, const std::string &message);
 	void cmdMode(int fd, const std::string& channel, const std::string& mode, const std::string& targetNick);
@@ -63,6 +65,7 @@ public:
 	void message(int fd, std::string args);
 	std::string getNickByFd(int fd);
 	Channel* getChannel(std::string channelName);
+	int getFdByNick(const std::string& nick);
 };
 
 #endif
