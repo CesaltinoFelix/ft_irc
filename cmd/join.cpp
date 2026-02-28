@@ -52,4 +52,6 @@ void Server::cmdJoin(int fd, const std::string &channelName)
     channel->addClient(client);
     std::string joinMsg = ":" + client->getNickname() + " JOIN " + chanNameOnly + "\r\n";
     channel->broadcast(joinMsg);
+    if(channel->getTopic() != "")
+        sendToClient(fd, ":" + getNickByFd(fd) + " TOPIC " + chanNameOnly + " :" + channel->getTopic());
 }
