@@ -288,6 +288,10 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 		removeClient(fd);
 	else if (cmd == "JOIN" || cmd == "join")
 		cmdJoin(fd, args);
+	else if (cmd == "INVITE" || cmd == "invite")
+		cmdInvite(fd, args);
+	else if (cmd == "TOPIC" || cmd == "topic")
+		cmdTopic(fd, args);
 	else if (cmd == "PRIVMSG" || cmd == "privmsg")
 		message( fd, args);
 	else if(cmd == "MODE" || cmd == "mode")
@@ -349,7 +353,6 @@ void Server::cmdPass(int fd, const std::string &args)
 		std::cout << "--->" << args << std::endl;
 		client->setAuthenticated(true);
 		std::cout << "Client fd " << fd << " authenticated successfully" << std::endl;
-		// Não enviamos mensagem de sucesso aqui - o cliente ainda precisa de NICK e USER
 	}
 	else
 	{
