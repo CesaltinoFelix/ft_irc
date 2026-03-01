@@ -1,6 +1,5 @@
 #include "../inc/Chanell.hpp"
-Channel::Channel(const std::string& name) : _name(name), _key(""), _limit(0) {}
-// Métodos para limite (+l)
+Channel::Channel(const std::string& name) : _name(name), _key(""), _limit(0), _inviteOnly(false), _topicRestricted(false), _topic("") {}
 void Channel::setLimit(int limit) {
     _limit = limit;
 }
@@ -110,6 +109,66 @@ bool Channel::isOperator(const std::string& nickname) const
         {
             return true;
         }
+    }
+    return false;
+}
+
+// Métodos para invite-only (+i)
+void Channel::setInviteOnly(bool value) {
+    _inviteOnly = value;
+}
+
+bool Channel::isInviteOnly() const {
+    return _inviteOnly;
+}
+
+void Channel::addInvited(const std::string& nick) {
+    for (size_t i = 0; i < _invitedUsers.size(); i++) {
+        if (_invitedUsers[i] == nick)
+            return;
+    }
+    _invitedUsers.push_back(nick);
+}
+
+void Channel::removeInvited(const std::string& nick) {
+    for (std::vector<std::string>::iterator it = _invitedUsers.begin(); it != _invitedUsers.end(); ++it) {
+        if (*it == nick) {
+            _invitedUsers.erase(it);
+            return;
+        }
+    }
+}
+
+bool Channel::isInvited(const std::string& nick) const {
+    for (size_t i = 0; i < _invitedUsers.size(); i++) {
+        if (_invitedUsers[i] == nick)
+            return true;
+    }
+    return false;
+}
+
+// Métodos para tópico (+t)
+void Channel::setTopicRestricted(bool value) {
+    _topicRestricted = value;
+}
+
+bool Channel::isTopicRestricted() const {
+    return _topicRestricted;
+}
+
+void Channel::setTopic(const std::string& topic) {
+    _topic = topic;
+}
+
+const std::string& Channel::getTopic() const {
+    return _topic;
+}
+
+// Verifica se um cliente está no canal
+bool Channel::hasClient(const std::string& nick) const {
+    for (size_t i = 0; i < _clients.size(); i++) {
+        if (_clients[i]->getNickname() == nick)
+            return true;
     }
     return false;
 }

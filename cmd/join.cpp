@@ -41,7 +41,17 @@ void Server::cmdJoin(int fd, const std::string &channelName)
         return;
     }
 
+    if (channel->isInviteOnly()) {
+        if (!channel->isInvited(client->getNickname())) {
+            sendToClient(fd, "473 " + chanNameOnly + " :Cannot join channel (+i) - invite only");
+            return;
+        }
+        channel->removeInvited(client->getNickname());
+    }
+
     channel->addClient(client);
     std::string joinMsg = ":" + client->getNickname() + " JOIN " + chanNameOnly + "\r\n";
     channel->broadcast(joinMsg);
+    if(channel->getTopic() != "")
+        sendToClient(fd, ":" + getNickByFd(fd) + " TOPIC " + chanNameOnly + " :" + channel->getTopic());
 }

@@ -1,0 +1,17 @@
+*.o
+*/*.o
+*/*/*.o
+*.out
+
+ircserv
+
+obj/
+
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+*.log
