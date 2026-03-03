@@ -145,26 +145,29 @@ void Server::handleClientData(int fd)
 }
 
 void Server::removeClient(int fd)
-{
+ {
 
-	for (std::vector<struct pollfd>::iterator it = _pollFds.begin(); it != _pollFds.end(); ++it)
-	{
-		if (it->fd == fd)
-		{
-			_pollFds.erase(it);
-			break;
-		}
-	}
+  Client *client = NULL;
+  std::map<int, Client *>::iterator cit = _clients.find(fd);
+  if (cit != _clients.end())
+    client = cit->second;
 
-	std::map<int, Client *>::iterator it = _clients.find(fd);
-	if (it != _clients.end())
-	{
-		delete it->second;
-		_clients.erase(it);
-	}
+  if (client)
+    remove_to_chanel(client);
 
-	close(fd);
-	std::cout << "Client removed. Total clients: " << _clients.size() << std::endl;
+  for (std::vector<struct pollfd>::iterator it = _pollFds.begin();
+       it != _pollFds.end(); ++it)
+    if (it->fd == fd) {
+      _pollFds.erase(it);
+      break;
+    }
+  if (cit != _clients.end()) {
+    delete cit->second;
+    _clients.erase(cit);
+  }
+  close(fd);
+  std::cout << "Client removed. Total clients: " << _clients.size()
+            << std::endl;
 }
 
 void Server::run()
@@ -276,7 +279,11 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 			info(fd);
 	}
 	else if (cmd == "quit" || cmd == "QUIT")
-		removeClient(fd);
+	{
+		 Client *cliente = _clients[fd];
+    	remove_to_chanel(cliente);
+    	removeClient(fd);
+	}
 	else if (cmd == "JOIN" || cmd == "join")
 		cmdJoin(fd, args);
 	else if (cmd == "INVITE" || cmd == "invite")
@@ -307,6 +314,10 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 			targetNick = "";
 		}
 		cmdMode(fd, channel, mode, targetNick);
+	}
+	else if(cmd == "PART" || cmd == "part")
+	{
+		 cmdPart(fd, args);
 	}
 	else
 		sendToClient(fd, "UNKNOWN  COMAND");

@@ -66,6 +66,8 @@ public:
 	std::string getNickByFd(int fd);
 	Channel* getChannel(std::string channelName);
 	int getFdByNick(const std::string& nick);
+  void cmdPart(int fd, const std::string &channelName);
+  void remove_to_chanel(Client *cl);
 };
 
 #endif
