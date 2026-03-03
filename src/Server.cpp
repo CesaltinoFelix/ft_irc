@@ -354,12 +354,41 @@ void Server::set_nickname(std::string cmd, int fd, bool id)
 		}
 		i++;
 	}
+	for(std::map<int, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+	{
+		Client *cli = it->second;
+		if(cli->getNickname() == cmd)
+		{
+			sendToClient(fd, "NAME EXISTENT");
+			return;
+		}
+	}
 	cliente->setNickname(cmd, id);
 }
 
 void Server::set_username(std::string &username, int fd, bool id)
 {
 	Client *cliente = _clients[fd];
+	if(username.empty())
+	{
+		sendToClient(fd, "INCORRECT NICKNAME");
+		return;
+	}
+	if(username.size() < 4)
+	{
+		sendToClient(fd, "INCORRECT SIZE TO NICKNAME");
+		return;
+	}
+	for(std::map<int, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+	{
+		Client *cli = it->second;
+		if(cli->getUsername() == username)
+		{
+			std::cout <<"OK"<<std::endl;
+			sendToClient(fd, "USER EXISTENT");
+			return;
+		}
+	}
 	cliente->setUsername(username, id);
 }
 
