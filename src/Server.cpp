@@ -272,7 +272,8 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 	else if (cmd == "NICK" || cmd == "nick")
 	{
 		set_nickname(args, fd, true);
-		sendToClient(fd, "USER: ");
+		if(cliente->get_nick())
+			sendToClient(fd, "USER: ");
 	}
 	else if (cmd == "user" || cmd == "USER")
 	{
@@ -333,18 +334,18 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 void Server::set_nickname(std::string cmd, int fd, bool id)
 {
 	Client *cliente = _clients[fd];
-	int i = 0;
+	size_t i = 0;
 	if(cmd.empty())
 	{
 		sendToClient(fd, "INCORRECT NICKNAME");
 		return;
 	}
-	if(cmd.size() != 4)
+	if(cmd.size() < 4)
 	{
 		sendToClient(fd, "INCORRECT SIZE TO NICKNAME");
 		return;
 	}
-	while(cmd[i])
+	while( i < cmd.size())
 	{
 		if(!((cmd[i] >= 'a' && cmd[i] <= 'z') || (cmd[i] >= 'A' && cmd[i] <= 'Z')))
 		{
@@ -353,7 +354,6 @@ void Server::set_nickname(std::string cmd, int fd, bool id)
 		}
 		i++;
 	}
-
 	cliente->setNickname(cmd, id);
 }
 
