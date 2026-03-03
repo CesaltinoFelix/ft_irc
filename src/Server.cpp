@@ -333,6 +333,27 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 void Server::set_nickname(std::string cmd, int fd, bool id)
 {
 	Client *cliente = _clients[fd];
+	int i = 0;
+	if(cmd.empty())
+	{
+		sendToClient(fd, "INCORRECT NICKNAME");
+		return;
+	}
+	if(cmd.size() != 4)
+	{
+		sendToClient(fd, "INCORRECT SIZE TO NICKNAME");
+		return;
+	}
+	while(cmd[i])
+	{
+		if(!((cmd[i] >= 'a' && cmd[i] <= 'z') || (cmd[i] >= 'A' && cmd[i] <= 'Z')))
+		{
+			sendToClient(fd, "CARACTERE INVALID TO NICKNAME");
+			return ;
+		}
+		i++;
+	}
+
 	cliente->setNickname(cmd, id);
 }
 

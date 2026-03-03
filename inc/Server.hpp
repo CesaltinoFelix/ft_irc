@@ -68,6 +68,7 @@ public:
 	int getFdByNick(const std::string& nick);
   void cmdKick(int fd, const std::string &channelName, const std::string &client_to_kick);
   void remove_to_chanel(Client *cl);
+  void validate_nick_and_user(std::string &str);
 };
 
 #endif
