@@ -249,14 +249,16 @@ void Server::processCommand(int fd, const std::string &command)
 		args = "";
 	}
 	cmd_execute(cmd, args, fd);
-	if (!_clients[fd]->isAuthenticated())
+	if (_clients.find(fd) == _clients.end())
+	{
+		return;
+	}
+	Client *client = _clients[fd];
+	if (!client->isAuthenticated())
 	{
 		sendToClient(fd, "ERROR :You must authenticate first with PASS");
 	}
-	else if (!_clients[fd]->isAuthenticated())
-	{
-		sendToClient(fd, "421 " + cmd + " :Unknown command");
-	}
+
 }
 void Server::cmd_execute(std::string cmd, std::string args, int fd)
 {
@@ -280,9 +282,7 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 	}
 	else if (cmd == "quit" || cmd == "QUIT")
 	{
-		 Client *cliente = _clients[fd];
-    	remove_to_chanel(cliente);
-    	removeClient(fd);
+		removeClient(fd);
 	}
 	else if (cmd == "JOIN" || cmd == "join")
 		cmdJoin(fd, args);
@@ -315,9 +315,16 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 		}
 		cmdMode(fd, channel, mode, targetNick);
 	}
-	else if(cmd == "PART" || cmd == "part")
+	else if(cmd == "KICK" || cmd == "kick")
 	{
-		 cmdPart(fd, args);
+		size_t sp = args.find(' ');
+		if (sp == std::string::npos) {
+			sendToClient(fd, "461 KICK :Not enough parameters");
+		} else {
+			std::string channel = args.substr(0, sp);
+			std::string nick = args.substr(sp + 1);
+			cmdKick(fd, channel, nick);
+		}
 	}
 	else
 		sendToClient(fd, "UNKNOWN  COMAND");
@@ -352,7 +359,6 @@ void Server::cmdPass(int fd, const std::string &args)
 	}
 	if (args == _password)
 	{
-		std::cout << "--->" << args << std::endl;
 		client->setAuthenticated(true);
 		std::cout << "Client fd " << fd << " authenticated successfully" << std::endl;
 	}
