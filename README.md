@@ -1,71 +1,111 @@
-# ft_irc - Servidor IRC Simples
+# ft_irc
 
-Um servidor IRC básico desenvolvido em C++98 para aprender conceitos de:
-- Programação em rede (sockets)
-- Comunicação TCP/IP
-- Desenvolvimento de servidores
+An IRC server written in C++98, compliant with the IRC protocol (RFC 2812).
+The server handles multiple clients simultaneously using `poll()` for non-blocking I/O multiplexing.
 
-## Como compilar
+## Features
+
+- **Authentication** with server password (`PASS`)
+- **User registration** (`NICK`, `USER`)
+- **Channel management** (`JOIN`, `PART`, `KICK`, `INVITE`, `TOPIC`)
+- **Private messaging** (`PRIVMSG` to channels and users)
+- **Channel modes**:
+  - `+i` / `-i` — Invite-only channel
+  - `+t` / `-t` — Topic restricted to operators
+  - `+k` / `-k` — Channel key (password)
+  - `+l` / `-l` — User limit
+  - `+o` / `-o` — Channel operator privilege
+- **PING/PONG** keep-alive
+- **Graceful signal handling** (`SIGINT`, `SIGQUIT`)
+- Non-blocking sockets with `poll()` multiplexing
+
+## Requirements
+
+- C++ compiler with C++98 support
+- Make
+- Linux / macOS
+
+## Build
 
 ```bash
-make
+make        # Build the project
+make clean  # Remove object files
+make fclean # Remove object files and binary
+make re     # Rebuild from scratch
 ```
 
-## Como executar
+## Usage
 
 ```bash
 ./ircserv <port> <password>
 ```
 
-**Exemplo:**
+| Argument   | Description                              |
+|------------|------------------------------------------|
+| `port`     | Port number to listen on (1024–65535)    |
+| `password` | Connection password required by clients  |
+
+### Example
+
 ```bash
 ./ircserv 6667 mypassword
 ```
 
-- **port**: Porta onde o servidor vai escutar (use uma acima de 1024)
-- **password**: Senha necessária para conectar ao servidor
+## Connecting
 
-## Teste rápido
-
-Em outro terminal, você pode conectar usando:
+Use any IRC client (e.g., **irssi**, **WeeChat**, **HexChat**) or `nc`:
 
 ```bash
 nc localhost 6667
 ```
 
-## Estrutura Básica
+Then authenticate and register:
 
-- `main.cpp` - Programa principal que valida argumentos e cria o servidor
-- `Server.hpp` - Declaração da classe Server
-- `Server.cpp` - Implementação da classe Server
+```
+PASS mypassword
+NICK mynick
+USER myuser 0 * :My Real Name
+```
 
-## O que este código faz
+## Supported Commands
 
-1. **main.cpp**: Valida os argumentos (porta e senha) e cria um objeto Server
-2. **Server::init()**: Cria o socket, faz bind na porta e coloca em modo de escuta
-3. **Server::run()**: Loop infinito que aceita conexões
-4. **Server::acceptConnection()**: Aceita uma conexão e fecha (versão básica)
+| Command   | Description                                  |
+|-----------|----------------------------------------------|
+| `PASS`    | Authenticate with server password            |
+| `NICK`    | Set or change nickname                       |
+| `USER`    | Set username and realname                    |
+| `JOIN`    | Join a channel (with optional key)           |
+| `PART`    | Leave a channel                              |
+| `PRIVMSG` | Send a message to a channel or user         |
+| `KICK`    | Remove a user from a channel (operator only) |
+| `INVITE`  | Invite a user to a channel                   |
+| `TOPIC`   | View or set a channel topic                  |
+| `MODE`    | Set channel modes (+i, +t, +k, +l, +o)      |
+| `PING`    | Keep-alive request                           |
+| `QUIT`    | Disconnect from the server                   |
 
-## Próximos passos para expandir
+## Project Structure
 
-- [x] Armazenar múltiplas conexões (usar vetor ou lista)
-- [x] Usar `select()` ou `poll()` para gerenciar múltiplos clientes
-- [ ] Implementar protocolo IRC (comandos, canais, usuários)
-- [ ] Criar classes Client e Channel
-- [x] Implementar autenticação com senha (comando PASS)
-
-## Domigos-> Trabalhei nestas 6 funcoes e descrevei o que cada uma faz
-1 - void set_nickname(std::string cmd, int fd, bool id);
-2 - void set_username(std::string &username, int fd , bool id);
-3 - void cmdJoin(int fd, const std::string& channelName);
-4-  void cmdPrivmsg(int fd, const std::string &target, const std::string &message); 
-5 - void cmdPrivmsg_to_client(int fd, const std::string &target, const std::string &message);
-6-  void cmd_execute(std::string cmd, std::string args, int fd);
-
-1 - Reposnsavel por setar o nick_name do cliente durante o cadastro.
-2 - Responsavel por setar o user_name do cliente durante o cadastro.
-3 - Aqui esta funcao trabalha com a classe chanell que eu criei esta mesma funcao cria um denterminado canal e adiciona um cliente ao canal.
-4 - Esta função é responsável por mandar uma mensagem a todos os clientes conectados num canal
-5 - Esta função é responsável por mandar mensagem no privado em um determinado cliente.
-6 - Esta funcão criei-a com o intuito de executar todos os comandos passados pelos clientes
+```
+ft_irc/
+├── Makefile
+├── inc/
+│   ├── Server.hpp
+│   ├── Client.hpp
+│   └── Chanell.hpp
+├── src/
+│   ├── main.cpp
+│   ├── Server.cpp
+│   ├── Client.cpp
+│   └── Chanell.cpp
+└── cmd/
+    ├── join.cpp
+    ├── part.cpp
+    ├── kick.cpp
+    ├── invite.cpp
+    ├── topic.cpp
+    ├── mode.cpp
+    ├── privmsg.cpp
+    └── utls.cpp
+```
 
