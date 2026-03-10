@@ -25,7 +25,6 @@ void Server::cmdPrivmsg(int fd, const std::string &target, const std::string &me
         }
 
         std::string fullMessage = ":" + sender->getNickname() + " PRIVMSG " + target + " :" + message + "\r\n";
-        // Send to all channel members except sender
         for (size_t i = 0; i < channel->getClients().size(); i++)
         {
             if (channel->getClients()[i]->getFd() != fd)
