@@ -2,13 +2,25 @@
 
 void Server::cmdInvite(int fd, const std::string& args)
 {
+	Client *client = _clients[fd];
+	if (!client->isAuthenticated() || !client->get_nick() || !client->get_user())
+	{
+		sendToClient(fd, "451 :You have not registered");
+		return;
+	}
+
 	size_t spacePos = args.find(' ');
-	if (spacePos == std::string::npos) {
+	if (spacePos == std::string::npos || args.empty()) {
 		sendToClient(fd, "461 INVITE :Not enough parameters");
 		return;
 	}
 	std::string targetNick = args.substr(0, spacePos);
 	std::string channelName = args.substr(spacePos + 1);
+
+	if (targetNick.empty() || channelName.empty()) {
+		sendToClient(fd, "461 INVITE :Not enough parameters");
+		return;
+	}
 
 	Channel* channel = getChannel(channelName);
 	if (!channel) {
@@ -17,13 +29,15 @@ void Server::cmdInvite(int fd, const std::string& args)
 	}
 
 	std::string inviterNick = getNickByFd(fd);
-	if (!channel->isOperator(inviterNick)) {
-		sendToClient(fd, "482 " + channelName + " :You're not channel operator");
-		return;
-	}
 
 	if (!channel->hasClient(inviterNick)) {
 		sendToClient(fd, "442 " + channelName + " :You're not on that channel");
+		return;
+	}
+
+	// Only require operator status if channel is invite-only
+	if (channel->isInviteOnly() && !channel->isOperator(inviterNick)) {
+		sendToClient(fd, "482 " + channelName + " :You're not channel operator");
 		return;
 	}
 
