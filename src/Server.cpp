@@ -6,7 +6,6 @@ bool Server::_running = true;
 Server::Server(int port, const std::string &password)
 	: _port(port), _password(password), _serverSocket(-1)
 {
-	std::cout << "Server object created" << std::endl;
 }
 
 Server::~Server()
@@ -23,7 +22,6 @@ Server::~Server()
 
 	_clients.clear();
 	_channels.clear();
-	std::cout << "Server object destroyed" << std::endl;
 }
 
 void Server::init()
@@ -70,7 +68,7 @@ void Server::init()
 	serverPollFd.revents = 0;
 	_pollFds.push_back(serverPollFd);
 
-	std::cout << "Server listening on port " << _port << std::endl;
+	std::cout << GRE << "Server listening on port " << _port << WHI << std::endl;
 }
 
 void Server::acceptConnection()
@@ -80,23 +78,18 @@ void Server::acceptConnection()
 
 	int clientSocket = accept(_serverSocket, (struct sockaddr *)&clientAddr, &addrLen);
 	if (clientSocket < 0)
-	{
-		std::cerr << "Error accepting connection" << std::endl;
 		return;
-	}
 
 	if (static_cast<int>(_clients.size()) >= MAX_CLIENTS)
 	{
 		std::string msg = "ERROR :Server is full\r\n";
-		send(clientSocket, msg.c_str(), msg.length(), 0);
+		send(clientSocket, msg.c_str(), msg.length(), MSG_NOSIGNAL);
 		close(clientSocket);
-		std::cerr << "Connection rejected: max clients reached" << std::endl;
 		return;
 	}
 
 	if (fcntl(clientSocket, F_SETFL, O_NONBLOCK) < 0)
 	{
-		std::cerr << "Error setting client socket to non-blocking" << std::endl;
 		close(clientSocket);
 		return;
 	}
@@ -110,10 +103,6 @@ void Server::acceptConnection()
 	std::string clientIp = inet_ntoa(clientAddr.sin_addr);
 	Client *newClient = new Client(clientSocket, clientIp);
 	_clients[clientSocket] = newClient;
-
-	std::cout << "New connection from " << clientIp;
-	std::cout << " (fd: " << clientSocket << ")" << std::endl;
-	std::cout << "Total clients: " << _clients.size() << std::endl;
 }
 
 void Server::handleClientData(int fd)
@@ -125,16 +114,11 @@ void Server::handleClientData(int fd)
 
 	if (bytesRead <= 0)
 	{
-		if (bytesRead == 0)
-			std::cout << "Client disconnected (fd: " << fd << ")" << std::endl;
-		else
-			std::cerr << "Error reading from client (fd: " << fd << ")" << std::endl;
 		removeClient(fd);
 		return;
 	}
 
 	Client *client = _clients[fd];
-	// Strip null bytes from received data
 	std::string data(buffer, bytesRead);
 	for (std::string::iterator it = data.begin(); it != data.end(); )
 	{
@@ -165,7 +149,6 @@ void Server::handleClientData(int fd)
 
 		if (!command.empty())
 		{
-			std::cout << "Received from fd " << fd << ": " << command << std::endl;
 			processCommand(fd, command);
 			if (_clients.find(fd) == _clients.end())
 				return;
@@ -174,43 +157,40 @@ void Server::handleClientData(int fd)
 }
 
 void Server::removeClient(int fd)
- {
+{
+	Client *client = NULL;
+	std::map<int, Client *>::iterator cit = _clients.find(fd);
+	if (cit != _clients.end())
+		client = cit->second;
 
-  Client *client = NULL;
-  std::map<int, Client *>::iterator cit = _clients.find(fd);
-  if (cit != _clients.end())
-    client = cit->second;
+	if (client)
+		remove_to_chanel(client);
 
-  if (client)
-    remove_to_chanel(client);
-
-  for (std::vector<struct pollfd>::iterator it = _pollFds.begin();
-       it != _pollFds.end(); ++it)
-    if (it->fd == fd) {
-      _pollFds.erase(it);
-      break;
-    }
-  if (cit != _clients.end()) {
-    delete cit->second;
-    _clients.erase(cit);
-  }
-  close(fd);
-  std::cout << "Client removed. Total clients: " << _clients.size()
-            << std::endl;
+	for (std::vector<struct pollfd>::iterator it = _pollFds.begin();
+		 it != _pollFds.end(); ++it)
+	{
+		if (it->fd == fd)
+		{
+			_pollFds.erase(it);
+			break;
+		}
+	}
+	if (cit != _clients.end())
+	{
+		delete cit->second;
+		_clients.erase(cit);
+	}
+	close(fd);
 }
 
 void Server::signalHandler(int signum)
 {
 	(void)signum;
-	std::cout << "\nSignal received, shutting down..." << std::endl;
 	_running = false;
 }
 
 void Server::run()
 {
-	std::cout << "Server started!" << std::endl;
-	std::cout << "Press Ctrl+C to stop" << std::endl;
-
 	while (_running)
 	{
 		int pollCount = poll(&_pollFds[0], _pollFds.size(), -1);
@@ -219,7 +199,6 @@ void Server::run()
 		{
 			if (!_running)
 				break;
-			std::cerr << "Error in poll()" << std::endl;
 			break;
 		}
 
@@ -229,7 +208,6 @@ void Server::run()
 			{
 				if (_pollFds[i].fd != _serverSocket)
 				{
-					std::cout << "Client error/hangup (fd: " << _pollFds[i].fd << ")" << std::endl;
 					removeClient(_pollFds[i].fd);
 					break;
 				}
@@ -253,10 +231,7 @@ void Server::run()
 void Server::closeServer()
 {
 	if (_serverSocket >= 0)
-	{
 		close(_serverSocket);
-		std::cout << "Server closed" << std::endl;
-	}
 }
 
 int Server::getPort() const
@@ -285,7 +260,6 @@ void Server::processCommand(int fd, const std::string &command)
 	std::string cmd;
 	std::string args;
 
-	// Strip leading spaces
 	std::string trimmed = command;
 	size_t start = trimmed.find_first_not_of(' ');
 	if (start == std::string::npos)
@@ -296,7 +270,6 @@ void Server::processCommand(int fd, const std::string &command)
 	if (spacePos != std::string::npos)
 	{
 		cmd = trimmed.substr(0, spacePos);
-		// Skip extra spaces between command and args
 		size_t argStart = trimmed.find_first_not_of(' ', spacePos);
 		if (argStart != std::string::npos)
 			args = trimmed.substr(argStart);
@@ -316,28 +289,23 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 	if (_clients.find(fd) == _clients.end())
 		return;
 	Client *cliente = _clients[fd];
-	std::cout << cmd << std::endl;
 
-	// Convert command to uppercase for case-insensitive comparison
 	std::string upperCmd = cmd;
 	for (size_t i = 0; i < upperCmd.size(); i++)
 		upperCmd[i] = toupper(upperCmd[i]);
 
-	// PASS must be the first command
 	if (upperCmd == "PASS")
 	{
 		cmdPass(fd, args);
 		return;
 	}
 
-	// QUIT is always allowed
 	if (upperCmd == "QUIT")
 	{
 		removeClient(fd);
 		return;
 	}
 
-	// PING is always allowed (but only if authenticated)
 	if (upperCmd == "PING")
 	{
 		if (!cliente->isAuthenticated())
@@ -352,7 +320,6 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 		return;
 	}
 
-	// NICK requires PASS first
 	if (upperCmd == "NICK")
 	{
 		if (!cliente->isAuthenticated())
@@ -370,7 +337,6 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 		return;
 	}
 
-	// USER requires PASS and NICK first
 	if (upperCmd == "USER")
 	{
 		if (!cliente->isAuthenticated())
@@ -393,7 +359,6 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 		return;
 	}
 
-	// All other commands require full registration
 	if (!cliente->isAuthenticated() || !cliente->get_nick() || !cliente->get_user())
 	{
 		cliente->incrementInvalidCmdCount();
@@ -482,7 +447,6 @@ void Server::set_nickname(std::string cmd, int fd, bool id)
 		sendToClient(fd, "431 :No nickname given");
 		return;
 	}
-	// Take only first word as nickname (ignore anything after space)
 	size_t sp = cmd.find(' ');
 	if (sp != std::string::npos)
 		cmd = cmd.substr(0, sp);
@@ -496,7 +460,6 @@ void Server::set_nickname(std::string cmd, int fd, bool id)
 		sendToClient(fd, "432 " + cmd + " :Erroneous nickname (too long)");
 		return;
 	}
-	// First character must be a letter or special char
 	if (!isalpha(cmd[0]) && cmd[0] != '_')
 	{
 		sendToClient(fd, "432 " + cmd + " :Erroneous nickname");
@@ -513,7 +476,6 @@ void Server::set_nickname(std::string cmd, int fd, bool id)
 			return;
 		}
 	}
-	// Check for duplicate nickname (case-sensitive per IRC)
 	for(std::map<int, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
 		if (it->first != fd && it->second->getNickname() == cmd)
@@ -526,7 +488,6 @@ void Server::set_nickname(std::string cmd, int fd, bool id)
 	cliente->setNickname(cmd, id);
 	if (!oldNick.empty() && oldNick != cmd)
 	{
-		// Update operator lists in channels
 		for (std::map<std::string, Channel*>::iterator cit = _channels.begin(); cit != _channels.end(); ++cit)
 		{
 			Channel *chan = cit->second;
@@ -552,7 +513,6 @@ void Server::set_username(std::string &username, int fd, bool id)
 		sendToClient(fd, "462 :You may not reregister");
 		return;
 	}
-	// Parse USER command: USER <username> <mode> <unused> :<realname>
 	std::string user = username;
 	size_t sp = username.find(' ');
 	if (sp != std::string::npos)
@@ -581,14 +541,10 @@ void Server::cmdPass(int fd, const std::string &args)
 		return;
 	}
 	if (args == _password)
-	{
 		client->setAuthenticated(true);
-		std::cout << "Client fd " << fd << " authenticated successfully" << std::endl;
-	}
 	else
 	{
 		sendToClient(fd, "464 :Password incorrect");
-		std::cout << "Client fd " << fd << " failed authentication (wrong password)" << std::endl;
 		removeClient(fd);
 	}
 }

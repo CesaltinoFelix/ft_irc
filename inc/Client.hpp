@@ -8,12 +8,12 @@
 class Client
 {
 private:
-	int					_fd;	
+	int					_fd;
 	std::string			_ipAddr;
 	std::string			_nickname;
 	std::string			_username;
-	std::string			_buffer;		// Buffer para mensagens incompletas
-	bool				_authenticated;	// Se passou a senha correta
+	std::string			_buffer;
+	bool				_authenticated;
 	bool				_nick;
 	bool				_user;
 	int					_invalidCmdCount;
@@ -30,16 +30,15 @@ public:
 	bool				isAuthenticated() const;
 
 	void				setNickname(const std::string &nickname, bool id);
-	void				setUsername(const std::string &username , bool id);
+	void				setUsername(const std::string &username, bool id);
 	void				setAuthenticated(bool auth);
-	// Buffer management
 	void				appendToBuffer(const std::string &data);
 	void				clearBuffer();
-	std::string&		getBufferRef();
-	bool get_nick() const;
-	bool get_user()const;
-	int getInvalidCmdCount() const;
-	void incrementInvalidCmdCount();
+	std::string			&getBufferRef();
+	bool				get_nick() const;
+	bool				get_user() const;
+	int					getInvalidCmdCount() const;
+	void				incrementInvalidCmdCount();
 };
 
 #endif

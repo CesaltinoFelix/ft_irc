@@ -56,7 +56,6 @@ void Client::setAuthenticated(bool auth)
 	_authenticated = auth;
 }
 
-// Buffer management... Acha que isso pode ser melhorado depois, mas por enquanto vamos manter simples
 void Client::appendToBuffer(const std::string &data)
 {
 	_buffer += data;
@@ -72,22 +71,22 @@ std::string& Client::getBufferRef()
 	return _buffer;
 }
 
-bool Client::get_nick()const
+bool Client::get_nick() const
 {
-	return this->_nick;
+	return _nick;
 }
 
-bool Client::get_user()const
+bool Client::get_user() const
 {
-	return this->_user;
+	return _user;
 }
 
 int Client::getInvalidCmdCount() const
 {
-	return this->_invalidCmdCount;
+	return _invalidCmdCount;
 }
 
 void Client::incrementInvalidCmdCount()
 {
-	this->_invalidCmdCount++;
+	_invalidCmdCount++;
 }

@@ -1,4 +1,4 @@
-#include "../inc/Chanell.hpp"
+#include "Chanell.hpp"
 #include <sys/socket.h>
 Channel::Channel(const std::string& name) : _name(name), _key(""), _limit(0), _inviteOnly(false), _topicRestricted(false), _topic("") {}
 void Channel::setLimit(int limit) {
@@ -114,7 +114,6 @@ bool Channel::isOperator(const std::string& nickname) const
     return false;
 }
 
-// Métodos para invite-only (+i)
 void Channel::setInviteOnly(bool value) {
     _inviteOnly = value;
 }
@@ -148,7 +147,6 @@ bool Channel::isInvited(const std::string& nick) const {
     return false;
 }
 
-// Métodos para tópico (+t)
 void Channel::setTopicRestricted(bool value) {
     _topicRestricted = value;
 }
@@ -165,7 +163,6 @@ const std::string& Channel::getTopic() const {
     return _topic;
 }
 
-// Verifica se um cliente está no canal
 bool Channel::hasClient(const std::string& nick) const {
     for (size_t i = 0; i < _clients.size(); i++) {
         if (_clients[i]->getNickname() == nick)
