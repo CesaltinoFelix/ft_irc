@@ -21,7 +21,6 @@ void Server::message(int fd, std::string args)
 	}
 	std::string target = args.substr(0, spacePos);
 	std::string msg = args.substr(spacePos + 1);
-	// Strip leading colon from message (trailing text)
 	if (!msg.empty() && msg[0] == ':')
 		msg.erase(0, 1);
 	if (target[0] == '#')
