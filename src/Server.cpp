@@ -1,6 +1,8 @@
 #include "Server.hpp"
 #include <cstdlib>
 
+bool Server::_running = true;
+
 Server::Server(int port, const std::string &password)
 	: _port(port), _password(password), _serverSocket(-1)
 {
@@ -83,6 +85,15 @@ void Server::acceptConnection()
 		return;
 	}
 
+	if (static_cast<int>(_clients.size()) >= MAX_CLIENTS)
+	{
+		std::string msg = "ERROR :Server is full\r\n";
+		send(clientSocket, msg.c_str(), msg.length(), 0);
+		close(clientSocket);
+		std::cerr << "Connection rejected: max clients reached" << std::endl;
+		return;
+	}
+
 	if (fcntl(clientSocket, F_SETFL, O_NONBLOCK) < 0)
 	{
 		std::cerr << "Error setting client socket to non-blocking" << std::endl;
@@ -125,6 +136,13 @@ void Server::handleClientData(int fd)
 	Client *client = _clients[fd];
 	client->appendToBuffer(std::string(buffer, bytesRead));
 
+	if (client->getBuffer().size() > MAX_BUFFER_SIZE)
+	{
+		sendToClient(fd, "ERROR :Input line too long");
+		removeClient(fd);
+		return;
+	}
+
 	std::string &clientBuffer = client->getBufferRef();
 	size_t pos;
 	while ((pos = clientBuffer.find('\n')) != std::string::npos)
@@ -140,6 +158,8 @@ void Server::handleClientData(int fd)
 		{
 			std::cout << "Received from fd " << fd << ": " << command << std::endl;
 			processCommand(fd, command);
+			if (_clients.find(fd) == _clients.end())
+				return;
 		}
 	}
 }
@@ -170,24 +190,42 @@ void Server::removeClient(int fd)
             << std::endl;
 }
 
+void Server::signalHandler(int signum)
+{
+	(void)signum;
+	std::cout << "\nSignal received, shutting down..." << std::endl;
+	_running = false;
+}
+
 void Server::run()
 {
 	std::cout << "Server started!" << std::endl;
 	std::cout << "Press Ctrl+C to stop" << std::endl;
 
-	while (1)
+	while (_running)
 	{
 		int pollCount = poll(&_pollFds[0], _pollFds.size(), -1);
 
 		if (pollCount < 0)
 		{
+			if (!_running)
+				break;
 			std::cerr << "Error in poll()" << std::endl;
 			break;
 		}
 
 		for (size_t i = 0; i < _pollFds.size(); i++)
 		{
-			if (_pollFds[i].revents & POLLIN)
+			if (_pollFds[i].revents & (POLLERR | POLLHUP | POLLNVAL))
+			{
+				if (_pollFds[i].fd != _serverSocket)
+				{
+					std::cout << "Client error/hangup (fd: " << _pollFds[i].fd << ")" << std::endl;
+					removeClient(_pollFds[i].fd);
+					break;
+				}
+			}
+			else if (_pollFds[i].revents & POLLIN)
 			{
 				if (_pollFds[i].fd == _serverSocket)
 				{
@@ -249,51 +287,87 @@ void Server::processCommand(int fd, const std::string &command)
 		args = "";
 	}
 	cmd_execute(cmd, args, fd);
-	if (_clients.find(fd) == _clients.end())
-	{
-		return;
-	}
-	Client *client = _clients[fd];
-	if (!client->isAuthenticated())
-	{
-		sendToClient(fd, "ERROR :You must authenticate first with PASS");
-	}
-
 }
+
 void Server::cmd_execute(std::string cmd, std::string args, int fd)
 {
+	if (_clients.find(fd) == _clients.end())
+		return;
 	Client *cliente = _clients[fd];
 	std::cout << cmd << std::endl;
-	if (cmd == "pass" || cmd == "PASS")
+
+	// Convert command to uppercase for case-insensitive comparison
+	std::string upperCmd = cmd;
+	for (size_t i = 0; i < upperCmd.size(); i++)
+		upperCmd[i] = toupper(upperCmd[i]);
+
+	// PASS must be the first command
+	if (upperCmd == "PASS")
 	{
 		cmdPass(fd, args);
-		sendToClient(fd, "NICK: ");
+		return;
 	}
-	else if (cmd == "NICK" || cmd == "nick")
-	{
-		set_nickname(args, fd, true);
-		if(cliente->get_nick())
-			sendToClient(fd, "USER: ");
-	}
-	else if (cmd == "user" || cmd == "USER")
-	{
-		set_username(args, fd, true);
-		if (cliente->isAuthenticated() && cliente->get_nick() && cliente->get_user())
-			info(fd);
-	}
-	else if (cmd == "quit" || cmd == "QUIT")
+
+	// QUIT is always allowed
+	if (upperCmd == "QUIT")
 	{
 		removeClient(fd);
+		return;
 	}
-	else if (cmd == "JOIN" || cmd == "join")
+
+	// NICK requires PASS first
+	if (upperCmd == "NICK")
+	{
+		if (!cliente->isAuthenticated())
+		{
+			sendToClient(fd, "451 :You have not registered");
+			return;
+		}
+		set_nickname(args, fd, true);
+		if (_clients.find(fd) != _clients.end() && cliente->isAuthenticated()
+			&& cliente->get_nick() && cliente->get_user())
+			info(fd);
+		return;
+	}
+
+	// USER requires PASS and NICK first
+	if (upperCmd == "USER")
+	{
+		if (!cliente->isAuthenticated())
+		{
+			sendToClient(fd, "451 :You have not registered");
+			return;
+		}
+		if (!cliente->get_nick())
+		{
+			sendToClient(fd, "451 :You must set NICK first");
+			return;
+		}
+		set_username(args, fd, true);
+		if (_clients.find(fd) != _clients.end() && cliente->isAuthenticated()
+			&& cliente->get_nick() && cliente->get_user())
+			info(fd);
+		return;
+	}
+
+	// All other commands require full registration
+	if (!cliente->isAuthenticated() || !cliente->get_nick() || !cliente->get_user())
+	{
+		sendToClient(fd, "451 :You have not registered");
+		return;
+	}
+
+	if (upperCmd == "JOIN")
 		cmdJoin(fd, args);
-	else if (cmd == "INVITE" || cmd == "invite")
+	else if (upperCmd == "INVITE")
 		cmdInvite(fd, args);
-	else if (cmd == "TOPIC" || cmd == "topic")
+	else if (upperCmd == "TOPIC")
 		cmdTopic(fd, args);
-	else if (cmd == "PRIVMSG" || cmd == "privmsg")
-		message( fd, args);
-	else if(cmd == "MODE" || cmd == "mode")
+	else if (upperCmd == "PRIVMSG")
+		message(fd, args);
+	else if (upperCmd == "PART")
+		cmdPart(fd, args);
+	else if (upperCmd == "MODE")
 	{
 		size_t firstSpace = args.find(' ');
 		if (firstSpace == std::string::npos)
@@ -316,7 +390,7 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 		}
 		cmdMode(fd, channel, mode, targetNick);
 	}
-	else if(cmd == "KICK" || cmd == "kick")
+	else if (upperCmd == "KICK")
 	{
 		size_t sp = args.find(' ');
 		if (sp == std::string::npos) {
@@ -328,68 +402,81 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 		}
 	}
 	else
-		sendToClient(fd, "UNKNOWN  COMAND");
+		sendToClient(fd, "421 " + cmd + " :Unknown command");
 }
 
 void Server::set_nickname(std::string cmd, int fd, bool id)
 {
 	Client *cliente = _clients[fd];
-	size_t i = 0;
 	if(cmd.empty())
 	{
-		sendToClient(fd, "INCORRECT NICKNAME");
+		sendToClient(fd, "431 :No nickname given");
 		return;
 	}
-	if(cmd.size() < 4)
+	if(cmd.size() > MAX_NICK_LEN)
 	{
-		sendToClient(fd, "INCORRECT SIZE TO NICKNAME");
+		sendToClient(fd, "432 " + cmd + " :Erroneous nickname (too long)");
 		return;
 	}
-	while( i < cmd.size())
+	// First character must be a letter or special char
+	if (!isalpha(cmd[0]) && cmd[0] != '_')
 	{
-		if(!((cmd[i] >= 'a' && cmd[i] <= 'z') || (cmd[i] >= 'A' && cmd[i] <= 'Z')))
-		{
-			sendToClient(fd, "CARACTERE INVALID TO NICKNAME");
-			return ;
-		}
-		i++;
+		sendToClient(fd, "432 " + cmd + " :Erroneous nickname");
+		return;
 	}
-	for(std::map<int, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+	for (size_t i = 0; i < cmd.size(); i++)
 	{
-		Client *cli = it->second;
-		if(cli->getNickname() == cmd)
+		if (!isalnum(cmd[i]) && cmd[i] != '_' && cmd[i] != '-'
+			&& cmd[i] != '[' && cmd[i] != ']' && cmd[i] != '\\'
+			&& cmd[i] != '`' && cmd[i] != '^' && cmd[i] != '{'
+			&& cmd[i] != '}')
 		{
-			sendToClient(fd, "NAME EXISTENT");
+			sendToClient(fd, "432 " + cmd + " :Erroneous nickname");
 			return;
 		}
 	}
+	// Check for duplicate nickname (case-sensitive per IRC)
+	for(std::map<int, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+	{
+		if (it->first != fd && it->second->getNickname() == cmd)
+		{
+			sendToClient(fd, "433 * " + cmd + " :Nickname is already in use");
+			return;
+		}
+	}
+	std::string oldNick = cliente->getNickname();
 	cliente->setNickname(cmd, id);
+	if (!oldNick.empty())
+	{
+		std::string nickMsg = ":" + oldNick + " NICK " + cmd + "\r\n";
+		for (std::map<std::string, Channel*>::iterator cit = _channels.begin(); cit != _channels.end(); ++cit)
+		{
+			Channel *chan = cit->second;
+			if (chan->hasClient(cmd))
+				chan->broadcast(nickMsg);
+		}
+	}
 }
 
 void Server::set_username(std::string &username, int fd, bool id)
 {
 	Client *cliente = _clients[fd];
-	if(username.empty())
+	if (cliente->get_user())
 	{
-		sendToClient(fd, "INCORRECT NICKNAME");
+		sendToClient(fd, "462 :You may not reregister");
 		return;
 	}
-	if(username.size() < 4)
+	// Parse USER command: USER <username> <mode> <unused> :<realname>
+	std::string user = username;
+	size_t sp = username.find(' ');
+	if (sp != std::string::npos)
+		user = username.substr(0, sp);
+	if(user.empty())
 	{
-		sendToClient(fd, "INCORRECT SIZE TO NICKNAME");
+		sendToClient(fd, "461 USER :Not enough parameters");
 		return;
 	}
-	for(std::map<int, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
-	{
-		Client *cli = it->second;
-		if(cli->getUsername() == username)
-		{
-			std::cout <<"OK"<<std::endl;
-			sendToClient(fd, "USER EXISTENT");
-			return;
-		}
-	}
-	cliente->setUsername(username, id);
+	cliente->setUsername(user, id);
 }
 
 void Server::cmdPass(int fd, const std::string &args)
@@ -416,6 +503,7 @@ void Server::cmdPass(int fd, const std::string &args)
 	{
 		sendToClient(fd, "464 :Password incorrect");
 		std::cout << "Client fd " << fd << " failed authentication (wrong password)" << std::endl;
+		removeClient(fd);
 	}
 }
 
