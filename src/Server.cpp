@@ -134,7 +134,16 @@ void Server::handleClientData(int fd)
 	}
 
 	Client *client = _clients[fd];
-	client->appendToBuffer(std::string(buffer, bytesRead));
+	// Strip null bytes from received data
+	std::string data(buffer, bytesRead);
+	for (std::string::iterator it = data.begin(); it != data.end(); )
+	{
+		if (*it == '\0')
+			it = data.erase(it);
+		else
+			++it;
+	}
+	client->appendToBuffer(data);
 
 	if (client->getBuffer().size() > MAX_BUFFER_SIZE)
 	{
@@ -234,6 +243,7 @@ void Server::run()
 				else
 				{
 					handleClientData(_pollFds[i].fd);
+					break;
 				}
 			}
 		}
@@ -267,7 +277,7 @@ std::string Server::getPassword() const
 void Server::sendToClient(int fd, const std::string &message)
 {
 	std::string fullMessage = message + "\r\n";
-	send(fd, fullMessage.c_str(), fullMessage.length(), 0);
+	send(fd, fullMessage.c_str(), fullMessage.length(), MSG_NOSIGNAL);
 }
 
 void Server::processCommand(int fd, const std::string &command)
@@ -275,15 +285,27 @@ void Server::processCommand(int fd, const std::string &command)
 	std::string cmd;
 	std::string args;
 
-	size_t spacePos = command.find(' ');
+	// Strip leading spaces
+	std::string trimmed = command;
+	size_t start = trimmed.find_first_not_of(' ');
+	if (start == std::string::npos)
+		return;
+	trimmed = trimmed.substr(start);
+
+	size_t spacePos = trimmed.find(' ');
 	if (spacePos != std::string::npos)
 	{
-		cmd = command.substr(0, spacePos);
-		args = command.substr(spacePos + 1);
+		cmd = trimmed.substr(0, spacePos);
+		// Skip extra spaces between command and args
+		size_t argStart = trimmed.find_first_not_of(' ', spacePos);
+		if (argStart != std::string::npos)
+			args = trimmed.substr(argStart);
+		else
+			args = "";
 	}
 	else
 	{
-		cmd = command;
+		cmd = trimmed;
 		args = "";
 	}
 	cmd_execute(cmd, args, fd);
@@ -315,6 +337,21 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 		return;
 	}
 
+	// PING is always allowed (but only if authenticated)
+	if (upperCmd == "PING")
+	{
+		if (!cliente->isAuthenticated())
+		{
+			sendToClient(fd, "451 :You have not registered");
+			return;
+		}
+		if (args.empty())
+			sendToClient(fd, "PONG ft_irc");
+		else
+			sendToClient(fd, "PONG " + args);
+		return;
+	}
+
 	// NICK requires PASS first
 	if (upperCmd == "NICK")
 	{
@@ -323,8 +360,11 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 			sendToClient(fd, "451 :You have not registered");
 			return;
 		}
+		bool wasRegistered = cliente->get_nick() && cliente->get_user();
 		set_nickname(args, fd, true);
-		if (_clients.find(fd) != _clients.end() && cliente->isAuthenticated()
+		if (_clients.find(fd) == _clients.end())
+			return;
+		if (!wasRegistered && cliente->isAuthenticated()
 			&& cliente->get_nick() && cliente->get_user())
 			info(fd);
 		return;
@@ -343,8 +383,11 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 			sendToClient(fd, "451 :You must set NICK first");
 			return;
 		}
+		bool wasRegistered = cliente->get_nick() && cliente->get_user();
 		set_username(args, fd, true);
-		if (_clients.find(fd) != _clients.end() && cliente->isAuthenticated()
+		if (_clients.find(fd) == _clients.end())
+			return;
+		if (!wasRegistered && cliente->isAuthenticated()
 			&& cliente->get_nick() && cliente->get_user())
 			info(fd);
 		return;
@@ -353,22 +396,48 @@ void Server::cmd_execute(std::string cmd, std::string args, int fd)
 	// All other commands require full registration
 	if (!cliente->isAuthenticated() || !cliente->get_nick() || !cliente->get_user())
 	{
+		cliente->incrementInvalidCmdCount();
+		if (cliente->getInvalidCmdCount() > 10)
+		{
+			sendToClient(fd, "ERROR :Too many invalid commands before registration");
+			removeClient(fd);
+			return;
+		}
 		sendToClient(fd, "451 :You have not registered");
 		return;
 	}
 
 	if (upperCmd == "JOIN")
+	{
+		if (args.empty())
+		{
+			sendToClient(fd, "461 JOIN :Not enough parameters");
+			return;
+		}
 		cmdJoin(fd, args);
+	}
 	else if (upperCmd == "INVITE")
 		cmdInvite(fd, args);
 	else if (upperCmd == "TOPIC")
 		cmdTopic(fd, args);
 	else if (upperCmd == "PRIVMSG")
+	{
+		if (args.empty())
+		{
+			sendToClient(fd, "461 PRIVMSG :Not enough parameters");
+			return;
+		}
 		message(fd, args);
+	}
 	else if (upperCmd == "PART")
 		cmdPart(fd, args);
 	else if (upperCmd == "MODE")
 	{
+		if (args.empty())
+		{
+			sendToClient(fd, "461 MODE :Not enough parameters");
+			return;
+		}
 		size_t firstSpace = args.find(' ');
 		if (firstSpace == std::string::npos)
 		{
@@ -413,6 +482,15 @@ void Server::set_nickname(std::string cmd, int fd, bool id)
 		sendToClient(fd, "431 :No nickname given");
 		return;
 	}
+	// Take only first word as nickname (ignore anything after space)
+	size_t sp = cmd.find(' ');
+	if (sp != std::string::npos)
+		cmd = cmd.substr(0, sp);
+	if(cmd.empty())
+	{
+		sendToClient(fd, "431 :No nickname given");
+		return;
+	}
 	if(cmd.size() > MAX_NICK_LEN)
 	{
 		sendToClient(fd, "432 " + cmd + " :Erroneous nickname (too long)");
@@ -446,14 +524,22 @@ void Server::set_nickname(std::string cmd, int fd, bool id)
 	}
 	std::string oldNick = cliente->getNickname();
 	cliente->setNickname(cmd, id);
-	if (!oldNick.empty())
+	if (!oldNick.empty() && oldNick != cmd)
 	{
-		std::string nickMsg = ":" + oldNick + " NICK " + cmd + "\r\n";
+		// Update operator lists in channels
 		for (std::map<std::string, Channel*>::iterator cit = _channels.begin(); cit != _channels.end(); ++cit)
 		{
 			Channel *chan = cit->second;
 			if (chan->hasClient(cmd))
+			{
+				if (chan->isOperator(oldNick))
+				{
+					chan->removeOperator(oldNick);
+					chan->addOperator(cmd);
+				}
+				std::string nickMsg = ":" + oldNick + " NICK " + cmd + "\r\n";
 				chan->broadcast(nickMsg);
+			}
 		}
 	}
 }

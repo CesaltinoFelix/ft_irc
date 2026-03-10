@@ -3,9 +3,9 @@
 void Server::cmdPrivmsg(int fd, const std::string &target, const std::string &message)
 {
     Client *sender = _clients[fd];
-    if (target.empty() || message.empty())
+    if (target.empty())
     {
-        sendToClient(fd, "412 :No text to send");
+        sendToClient(fd, "461 PRIVMSG :Not enough parameters");
         return;
     }
     if (target[0] == '#')
@@ -29,7 +29,7 @@ void Server::cmdPrivmsg(int fd, const std::string &target, const std::string &me
         for (size_t i = 0; i < channel->getClients().size(); i++)
         {
             if (channel->getClients()[i]->getFd() != fd)
-                send(channel->getClients()[i]->getFd(), fullMessage.c_str(), fullMessage.length(), 0);
+                send(channel->getClients()[i]->getFd(), fullMessage.c_str(), fullMessage.length(), MSG_NOSIGNAL);
         }
     }
     else

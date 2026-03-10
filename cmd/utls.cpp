@@ -10,23 +10,19 @@ void Server::message(int fd, std::string args)
 {
 	if (args.empty())
 	{
-		sendToClient(fd, "411 :No recipient given (PRIVMSG)");
+		sendToClient(fd, "461 PRIVMSG :Not enough parameters");
 		return;
 	}
 	size_t spacePos = args.find(' ');
 	if (spacePos == std::string::npos)
 	{
-		sendToClient(fd, "412 :No text to send");
+		sendToClient(fd, "461 PRIVMSG :Not enough parameters");
 		return;
 	}
 	std::string target = args.substr(0, spacePos);
 	std::string msg = args.substr(spacePos + 1);
-	if (msg.empty())
-	{
-		sendToClient(fd, "412 :No text to send");
-		return;
-	}
-	if (msg[0] == ':')
+	// Strip leading colon from message (trailing text)
+	if (!msg.empty() && msg[0] == ':')
 		msg.erase(0, 1);
 	if (target[0] == '#')
 	{

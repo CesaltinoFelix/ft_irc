@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include <cstdlib>
 
 void Server::cmdMode(int fd, const std::string& channel, const std::string& mode, const std::string& targetNick) {
     Channel* chan = getChannel(channel);
@@ -31,12 +32,19 @@ void Server::cmdMode(int fd, const std::string& channel, const std::string& mode
             sendToClient(fd, "461 MODE :Not enough parameters");
             return;
         }
-        int limit = atoi(targetNick.c_str());
-        if (limit <= 0) {
+        // Validate that targetNick is a valid positive integer
+        for (size_t i = 0; i < targetNick.size(); i++) {
+            if (!isdigit(targetNick[i])) {
+                sendToClient(fd, "472 " + targetNick + " :Invalid limit");
+                return;
+            }
+        }
+        long limit = strtol(targetNick.c_str(), NULL, 10);
+        if (limit <= 0 || limit > 2147483647L) {
             sendToClient(fd, "472 " + targetNick + " :Invalid limit");
             return;
         }
-        chan->setLimit(limit);
+        chan->setLimit(static_cast<int>(limit));
         modeMsg = ":" + nick + " MODE " + channel + " +l " + targetNick + "\r\n";
         chan->broadcast(modeMsg);
         return;

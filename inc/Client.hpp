@@ -16,6 +16,7 @@ private:
 	bool				_authenticated;	// Se passou a senha correta
 	bool				_nick;
 	bool				_user;
+	int					_invalidCmdCount;
 
 public:
 	Client(int fd, const std::string &ipAddr);
@@ -34,9 +35,11 @@ public:
 	// Buffer management
 	void				appendToBuffer(const std::string &data);
 	void				clearBuffer();
-	std::string&		getBufferRef();	// Retorna referência para modificar. Essa parte fiz com a ajuda do ChatGPT, achei que seria mais prático para processar os comandos. Mas preciso avaliar se é a melhor abordagem depois.
+	std::string&		getBufferRef();
 	bool get_nick() const;
 	bool get_user()const;
+	int getInvalidCmdCount() const;
+	void incrementInvalidCmdCount();
 };
 
 #endif

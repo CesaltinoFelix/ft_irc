@@ -43,6 +43,7 @@ int main(int argc, char **argv)
 
 	signal(SIGINT, Server::signalHandler);
 	signal(SIGQUIT, Server::signalHandler);
+	signal(SIGPIPE, SIG_IGN);
 
 	Server server(port, password);
 	server.init();

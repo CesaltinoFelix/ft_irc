@@ -68,7 +68,7 @@ void Channel::broadcast(const std::string& message)
 {
     for (size_t i = 0; i < _clients.size(); i++)
     {
-        send(_clients[i]->getFd(), message.c_str(), message.length(), 0);
+        send(_clients[i]->getFd(), message.c_str(), message.length(), MSG_NOSIGNAL);
     }
 }
 

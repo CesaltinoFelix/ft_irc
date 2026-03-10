@@ -1,7 +1,7 @@
 #include "Client.hpp"
 
 Client::Client(int fd, const std::string &ipAddr)
-	: _fd(fd), _ipAddr(ipAddr), _authenticated(false) , _nick(false) , _user(false)
+	: _fd(fd), _ipAddr(ipAddr), _authenticated(false) , _nick(false) , _user(false), _invalidCmdCount(0)
 {
 }
 
@@ -80,4 +80,14 @@ bool Client::get_nick()const
 bool Client::get_user()const
 {
 	return this->_user;
+}
+
+int Client::getInvalidCmdCount() const
+{
+	return this->_invalidCmdCount;
+}
+
+void Client::incrementInvalidCmdCount()
+{
+	this->_invalidCmdCount++;
 }

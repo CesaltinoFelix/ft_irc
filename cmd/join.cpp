@@ -33,11 +33,20 @@ void Server::cmdJoin(int fd, const std::string &channelName)
     // Validate channel name characters
     for (size_t i = 1; i < chanNameOnly.size(); i++)
     {
-        if (chanNameOnly[i] == ' ' || chanNameOnly[i] == ',' || chanNameOnly[i] == '\x07')
+        if (chanNameOnly[i] == ' ' || chanNameOnly[i] == ',' 
+            || chanNameOnly[i] == '\x07' || chanNameOnly[i] == '\r'
+            || chanNameOnly[i] == '\n' || chanNameOnly[i] == '\0')
         {
             sendToClient(fd, "476 " + chanNameOnly + " :Bad Channel Mask");
             return;
         }
+    }
+
+    // Limit channel name length
+    if (chanNameOnly.size() > 50)
+    {
+        sendToClient(fd, "476 " + chanNameOnly.substr(0, 50) + " :Bad Channel Mask");
+        return;
     }
 
     if (_channels.find(chanNameOnly) == _channels.end())
