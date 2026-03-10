@@ -23,6 +23,10 @@ void Server::cmdKick(int fd, const std::string &channelName, const std::string &
   }
 
   std::string callerNick = getNickByFd(fd);
+  if (!channel->hasClient(callerNick)) {
+    sendToClient(fd, "442 " + channelName + " :You're not on that channel");
+    return;
+  }
   if (!channel->isOperator(callerNick)) {
     sendToClient(fd, "482 " + channelName + " :You're not channel operator");
     return;
@@ -40,10 +44,11 @@ void Server::cmdKick(int fd, const std::string &channelName, const std::string &
 
   Client *target = _clients[targetFd];
   channel->removeClient(target);
+  channel->removeOperator(client_to_kick);
 
   std::string kickMsg = ":" + callerNick + " KICK " + channelName + " " + client_to_kick + "\r\n";
   channel->broadcast(kickMsg);
-  sendToClient(targetFd, ":" + callerNick + " KICK " + channelName + " " + client_to_kick + "\r\n");
+  sendToClient(targetFd, ":" + callerNick + " KICK " + channelName + " " + client_to_kick);
 
   if (channel->isEmpty()) {
     delete channel;
