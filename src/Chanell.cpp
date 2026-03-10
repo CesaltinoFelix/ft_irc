@@ -1,4 +1,5 @@
 #include "../inc/Chanell.hpp"
+#include <sys/socket.h>
 Channel::Channel(const std::string& name) : _name(name), _key(""), _limit(0), _inviteOnly(false), _topicRestricted(false), _topic("") {}
 void Channel::setLimit(int limit) {
     _limit = limit;
@@ -171,4 +172,8 @@ bool Channel::hasClient(const std::string& nick) const {
             return true;
     }
     return false;
+}
+
+const std::vector<Client*>& Channel::getClients() const {
+    return _clients;
 }
