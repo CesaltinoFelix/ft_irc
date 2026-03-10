@@ -35,7 +35,6 @@ void Server::cmdInvite(int fd, const std::string& args)
 		return;
 	}
 
-	// Only require operator status if channel is invite-only
 	if (channel->isInviteOnly() && !channel->isOperator(inviterNick)) {
 		sendToClient(fd, "482 " + channelName + " :You're not channel operator");
 		return;
