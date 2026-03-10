@@ -26,6 +26,12 @@ static void validateArgs(int argc, char **argv)
 		std::cerr << "Error: Port must be between 1024 and 65535" << std::endl;
 		exit(1);
 	}
+
+	if (argv[2][0] == '\0')
+	{
+		std::cerr << "Error: Password cannot be empty" << std::endl;
+		exit(1);
+	}
 }
 
 int main(int argc, char **argv)
@@ -35,9 +41,13 @@ int main(int argc, char **argv)
 	int port = atoi(argv[1]);
 	std::string password = argv[2];
 
+	signal(SIGINT, Server::signalHandler);
+	signal(SIGQUIT, Server::signalHandler);
+
 	Server server(port, password);
 	server.init();
 	server.run();
+	server.closeServer();
 
 	return 0;
 }
