@@ -30,7 +30,6 @@ void Server::cmdJoin(int fd, const std::string &channelName)
         return;
     }
 
-    // Validate channel name characters
     for (size_t i = 1; i < chanNameOnly.size(); i++)
     {
         if (chanNameOnly[i] == ' ' || chanNameOnly[i] == ',' 
@@ -42,7 +41,6 @@ void Server::cmdJoin(int fd, const std::string &channelName)
         }
     }
 
-    // Limit channel name length
     if (chanNameOnly.size() > 50)
     {
         sendToClient(fd, "476 " + chanNameOnly.substr(0, 50) + " :Bad Channel Mask");
@@ -55,7 +53,6 @@ void Server::cmdJoin(int fd, const std::string &channelName)
     }
     Channel *channel = _channels[chanNameOnly];
 
-    // Check if already in channel
     if (channel->hasClient(client->getNickname()))
     {
         return;
