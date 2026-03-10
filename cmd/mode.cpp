@@ -3,13 +3,28 @@
 void Server::cmdMode(int fd, const std::string& channel, const std::string& mode, const std::string& targetNick) {
     Channel* chan = getChannel(channel);
     std::string nick = getNickByFd(fd);
-    if (!chan || !chan->isOperator(nick)) {
+
+    if (!chan) {
+        sendToClient(fd, "403 " + channel + " :No such channel");
+        return;
+    }
+
+    if (!chan->hasClient(nick)) {
+        sendToClient(fd, "442 " + channel + " :You're not on that channel");
+        return;
+    }
+
+    if (!chan->isOperator(nick)) {
         sendToClient(fd, "482 " + channel + " :You're not channel operator");
         return;
     }
+
+    std::string modeMsg;
+
     if (mode == "-l") {
         chan->removeLimit();
-        sendToClient(fd, ":" + nick + " MODE " + channel + " -l");
+        modeMsg = ":" + nick + " MODE " + channel + " -l\r\n";
+        chan->broadcast(modeMsg);
         return;
     } else if (mode == "+l") {
         if (targetNick.empty()) {
@@ -22,39 +37,64 @@ void Server::cmdMode(int fd, const std::string& channel, const std::string& mode
             return;
         }
         chan->setLimit(limit);
-        sendToClient(fd, ":" + nick + " MODE " + channel + " +l " + targetNick);
+        modeMsg = ":" + nick + " MODE " + channel + " +l " + targetNick + "\r\n";
+        chan->broadcast(modeMsg);
         return;
     }
+
     if (mode == "+o") {
+        if (targetNick.empty()) {
+            sendToClient(fd, "461 MODE :Not enough parameters");
+            return;
+        }
+        if (!chan->hasClient(targetNick)) {
+            sendToClient(fd, "441 " + targetNick + " " + channel + " :They aren't on that channel");
+            return;
+        }
         chan->addOperator(targetNick);
-        sendToClient(fd, ":" + nick + " MODE " + channel + " +o " + targetNick);
+        modeMsg = ":" + nick + " MODE " + channel + " +o " + targetNick + "\r\n";
+        chan->broadcast(modeMsg);
     } else if (mode == "-o") {
+        if (targetNick.empty()) {
+            sendToClient(fd, "461 MODE :Not enough parameters");
+            return;
+        }
+        if (!chan->hasClient(targetNick)) {
+            sendToClient(fd, "441 " + targetNick + " " + channel + " :They aren't on that channel");
+            return;
+        }
         chan->removeOperator(targetNick);
-        sendToClient(fd, ":" + nick + " MODE " + channel + " -o " + targetNick);
+        modeMsg = ":" + nick + " MODE " + channel + " -o " + targetNick + "\r\n";
+        chan->broadcast(modeMsg);
     } else if (mode == "+k") {
         if (targetNick.empty()) {
             sendToClient(fd, "461 MODE :Not enough parameters");
             return;
         }
         chan->setKey(targetNick);
-        sendToClient(fd, ":" + nick + " MODE " + channel + " +k " + targetNick);
+        modeMsg = ":" + nick + " MODE " + channel + " +k " + targetNick + "\r\n";
+        chan->broadcast(modeMsg);
     } else if (mode == "-k") {
         chan->removeKey();
-        sendToClient(fd, ":" + nick + " MODE " + channel + " -k");
+        modeMsg = ":" + nick + " MODE " + channel + " -k\r\n";
+        chan->broadcast(modeMsg);
     } else if (mode == "+i") {
         chan->setInviteOnly(true);
-        sendToClient(fd, ":" + nick + " MODE " + channel + " +i");
+        modeMsg = ":" + nick + " MODE " + channel + " +i\r\n";
+        chan->broadcast(modeMsg);
     } else if (mode == "-i") {
         chan->setInviteOnly(false);
-        sendToClient(fd, ":" + nick + " MODE " + channel + " -i");
+        modeMsg = ":" + nick + " MODE " + channel + " -i\r\n";
+        chan->broadcast(modeMsg);
     } else if (mode == "+t") {
         chan->setTopicRestricted(true);
-        sendToClient(fd, ":" + nick + " MODE " + channel + " +t");
+        modeMsg = ":" + nick + " MODE " + channel + " +t\r\n";
+        chan->broadcast(modeMsg);
     } else if (mode == "-t") {
         chan->setTopicRestricted(false);
-        sendToClient(fd, ":" + nick + " MODE " + channel + " -t");
+        modeMsg = ":" + nick + " MODE " + channel + " -t\r\n";
+        chan->broadcast(modeMsg);
     } else {
         sendToClient(fd, "472 " + mode + " :is unknown mode char to me");
     }
-
 }
