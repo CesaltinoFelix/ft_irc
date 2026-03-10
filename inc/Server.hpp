@@ -15,11 +15,15 @@
 #include "Client.hpp"
 #include "Chanell.hpp"
 #include <cstdlib>
+#include <csignal>
 
 #define RED "\e[1;31m"
 #define WHI "\e[0;37m"
 #define GRE "\e[1;32m"
 #define YEL "\e[1;33m"
+#define MAX_CLIENTS 100
+#define MAX_BUFFER_SIZE 4096
+#define MAX_NICK_LEN 9
 
 class Server
 {
@@ -33,9 +37,12 @@ private:
 	std::map<int, Client*>		_clients;
 	std::map<std::string, Channel*> _channels;  
 
+static bool				_running;
+
 public:
 	Server(int port, const std::string &password);
 	~Server();
+	static void	signalHandler(int signum);
 
 	void	init();					
 	void	run();					
@@ -69,6 +76,7 @@ public:
   void cmdKick(int fd, const std::string &channelName, const std::string &client_to_kick);
   void remove_to_chanel(Client *cl);
   void validate_nick_and_user(std::string &str);
+  void cmdPart(int fd, const std::string &args);
 };
 
 #endif
