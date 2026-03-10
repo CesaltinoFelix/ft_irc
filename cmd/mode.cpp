@@ -32,7 +32,6 @@ void Server::cmdMode(int fd, const std::string& channel, const std::string& mode
             sendToClient(fd, "461 MODE :Not enough parameters");
             return;
         }
-        // Validate that targetNick is a valid positive integer
         for (size_t i = 0; i < targetNick.size(); i++) {
             if (!isdigit(targetNick[i])) {
                 sendToClient(fd, "472 " + targetNick + " :Invalid limit");
