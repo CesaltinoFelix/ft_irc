@@ -53,5 +53,6 @@ class Channel
         const std::string& getTopic() const;
 
         bool hasClient(const std::string& nick) const;
+        const std::vector<Client*>& getClients() const;
 };
 #endif
