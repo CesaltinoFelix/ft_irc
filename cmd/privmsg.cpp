@@ -17,8 +17,20 @@ void Server::cmdPrivmsg(int fd, const std::string &target, const std::string &me
         }
 
         Channel *channel = _channels[target];
-        std::string fullMessage = ":" + sender->getNickname()  + target + " :" + message + "\r\n";
-        channel->broadcast(fullMessage);
+
+        if (!channel->hasClient(sender->getNickname()))
+        {
+            sendToClient(fd, "404 " + target + " :Cannot send to channel (not a member)");
+            return;
+        }
+
+        std::string fullMessage = ":" + sender->getNickname() + " PRIVMSG " + target + " :" + message + "\r\n";
+        // Send to all channel members except sender
+        for (size_t i = 0; i < channel->getClients().size(); i++)
+        {
+            if (channel->getClients()[i]->getFd() != fd)
+                send(channel->getClients()[i]->getFd(), fullMessage.c_str(), fullMessage.length(), 0);
+        }
     }
     else
     {
